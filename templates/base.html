@@ -274,20 +274,31 @@
       canvas.height = H;
       const ctx = canvas.getContext('2d');
 
+      // Cantos arredondados no cartão inteiro (fundo fica transparente fora dele)
+      ctx.save();
+      agendaRoundRect(ctx, 0, 0, W, H, 44);
+      ctx.clip();
+
+      const faixaTopo = 0.30, faixaRodape = 0.68;
       const grad = ctx.createLinearGradient(0, 0, 0, H);
       grad.addColorStop(0, '#6b1522');
-      grad.addColorStop(0.30, '#6b1522');
-      grad.addColorStop(0.30, '#f6f6f4');
-      grad.addColorStop(0.68, '#f6f6f4');
-      grad.addColorStop(0.68, '#0f4a2c');
+      grad.addColorStop(faixaTopo, '#6b1522');
+      grad.addColorStop(faixaTopo, '#f6f6f4');
+      grad.addColorStop(faixaRodape, '#f6f6f4');
+      grad.addColorStop(faixaRodape, '#0f4a2c');
       grad.addColorStop(1, '#0f4a2c');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
+      // Linhas douradas separando as faixas de cor
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(0, H * faixaTopo - 3, W, 6);
+      ctx.fillRect(0, H * faixaRodape - 3, W, 6);
+
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 58px Inter, sans-serif';
-      ctx.fillText('JOGO CONFIRMADO', W / 2, 118);
+      ctx.fillText('JOGO CONFIRMADO', W / 2, 112);
 
       ctx.font = '600 26px Inter, sans-serif';
       const subtitulo = 'FUTEBOL AMADOR VETERANO';
@@ -295,13 +306,13 @@
       const pillW = larguraSubtitulo + 64;
       const pillH = 52;
       const pillX = W / 2 - pillW / 2;
-      const pillY = 148;
+      const pillY = 142;
       ctx.save();
       agendaRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
       ctx.fillStyle = 'rgba(255,255,255,.14)';
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255,255,255,.4)';
+      ctx.strokeStyle = 'rgba(255,255,255,.45)';
       ctx.stroke();
       ctx.restore();
       ctx.fillStyle = '#ffffff';
@@ -319,10 +330,27 @@
       agendaDesenharEscudo(ctx, imgFixo, W / 2 - 230, centerY, tamanhoEscudo);
       agendaDesenharEscudo(ctx, imgAdv, W / 2 + 230, centerY, tamanhoEscudo);
 
+      // Selo "X" dourado entre os escudos, sobre a linha divisória
+      const medalhaR = 52;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.3)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 4;
+      ctx.beginPath();
+      ctx.arc(W / 2, H * faixaTopo, medalhaR, 0, Math.PI * 2);
+      ctx.fillStyle = '#c9a227';
+      ctx.fill();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(W / 2, H * faixaTopo, medalhaR - 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
       ctx.fillStyle = '#1a1a1a';
-      ctx.font = '800 54px Inter, sans-serif';
+      ctx.font = '800 46px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('X', W / 2, centerY + 18);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('X', W / 2, H * faixaTopo + 3);
+      ctx.textBaseline = 'alphabetic';
 
       ctx.font = '700 38px Inter, sans-serif';
       ctx.fillStyle = '#1a1a1a';
@@ -330,14 +358,24 @@
       agendaWrapText(ctx, adversario, W / 2 + 230, centerY + tamanhoEscudo / 2 + 70, 340, 44);
 
       const boxY = 950;
-      ctx.fillStyle = '#0f4a2c';
-      agendaRoundRect(ctx, 70, boxY, W - 140, H - boxY - 60, 24);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.35)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 10;
+      ctx.fillStyle = '#0a3620';
+      agendaRoundRect(ctx, 70, boxY, W - 140, H - boxY - 60, 28);
+      ctx.fill();
+      ctx.restore();
+
+      // Barra dourada de destaque no topo do painel de detalhes
+      agendaRoundRect(ctx, 70, boxY, W - 140, 8, 4);
+      ctx.fillStyle = '#c9a227';
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
       ctx.font = '600 40px Inter, sans-serif';
-      let linhaY = boxY + 70;
+      let linhaY = boxY + 78;
       ctx.fillText('📅  ' + data, 120, linhaY);
       if (hora) {
         linhaY += 62;
@@ -347,6 +385,13 @@
         linhaY += 62;
         agendaWrapText(ctx, '📍  ' + local, 120, linhaY, W - 260, 46, 'left');
       }
+
+      ctx.textAlign = 'center';
+      ctx.font = '600 24px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.fillText('⚽ Agenda Santo Antônio do Oriente', W / 2, H - 34);
+
+      ctx.restore();
 
       return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     }
