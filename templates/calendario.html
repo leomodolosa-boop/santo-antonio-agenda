@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Calendário — {{ nome_mes }} {{ ano }}{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h1><i class="bi bi-calendar-week me-1"></i> {{ nome_mes }} {{ ano }}</h1>
+        <div class="subtitle">Calendário de jogos — {{ time_fixo }}</div>
+      </div>
+      <div class="d-flex gap-2 pill-nav">
+        <a class="btn btn-light btn-sm" href="{{ url_for('calendario', ano=prev_ano, mes=prev_mes) }}">
+          <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+        <a class="btn btn-light btn-sm" href="{{ url_for('calendario', ano=next_ano, mes=next_mes) }}">
+          Próximo <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>
+      <i class="bi bi-info-circle text-secondary me-1"></i>
+      Próximo sábado sem jogo agendado: <strong>{{ proximo_sabado_livre }}</strong>
+    </span>
+    <a class="btn btn-brand btn-sm" href="{{ url_for('jogo_novo', data=proximo_sabado_livre) }}">
+      <i class="bi bi-plus-lg"></i> Agendar jogo
+    </a>
+  </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 g-3">
+  {% for d in sabados %}
+    {% set jogo = jogos_por_data.get(d.isoformat()) %}
+    <div class="col">
+      {% set card_status = 'card-jogo' if jogo and jogo.status == 'confirmado' else ('card-pendente' if jogo and jogo.status == 'pendente' else 'card-livre') %}
+      <div class="card {{ card_status }} h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5 class="card-title mb-0"><i class="bi bi-calendar-event text-secondary me-1"></i> Sábado, {{ d.strftime('%d/%m/%Y') }}</h5>
+            {% if jogo %}
+              {% set badge_class = 'badge-confirmado' if jogo.status == 'confirmado' else ('badge-pendente' if jogo.status == 'pendente' else 'badge-cancelado') %}
+              {% set status_label = 'Pendente de confirmação' if jogo.status == 'pendente' else jogo.status|capitalize %}
+              <span class="badge rounded-pill {{ badge_class }}">{{ status_label }}</span>
+            {% endif %}
+          </div>
+
+          {% if jogo %}
+            <div class="d-flex align-items-center gap-3 my-3">
+              {% if jogo.adversario_escudo %}
+                <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ jogo.adversario_escudo) }}" alt="{{ jogo.adversario_nome }}">
+              {% else %}
+                <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
+              {% endif %}
+              <div>
+                <div class="fw-semibold">{{ time_fixo }}</div>
+                <div class="text-secondary small">x</div>
+                <div class="fw-semibold">{{ jogo.adversario_nome }}</div>
+              </div>
+            </div>
+            {% if jogo.hora %}<p class="mb-1 text-secondary small"><i class="bi bi-clock"></i> {{ jogo.hora }}</p>{% endif %}
+            {% if jogo.local %}<p class="mb-1 text-secondary small"><i class="bi bi-geo-alt"></i> {{ jogo.local }}</p>{% endif %}
+            {% if jogo.placar_santo is not none and jogo.placar_adversario is not none %}
+              <p class="mb-1">Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong></p>
+            {% endif %}
+            {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
+            <div class="d-flex gap-2 mt-2 flex-wrap">
+              <a class="btn btn-sm btn-outline-brand" href="{{ url_for('jogo_editar', jogo_id=jogo.id) }}">
+                <i class="bi bi-pencil"></i> Editar
+              </a>
+              {% if jogo.status == 'pendente' %}
+                <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
+                  <button type="submit" class="btn btn-sm btn-brand"><i class="bi bi-check-lg"></i> Confirmar jogo</button>
+                </form>
+              {% endif %}
+              {% if jogo.status == 'confirmado' %}
+                <button type="button" class="btn btn-sm btn-brand"
+                  data-time-fixo="{{ time_fixo }}"
+                  data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ escudo_fixo) if escudo_fixo else '' }}"
+                  data-adversario="{{ jogo.adversario_nome }}"
+                  data-escudo-adversario="{{ url_for('static', filename='escudos/' ~ jogo.adversario_escudo) if jogo.adversario_escudo else '' }}"
+                  data-data="{{ d.strftime('%d/%m/%Y') }}"
+                  data-hora="{{ jogo.hora or '' }}"
+                  data-local="{{ jogo.local or '' }}"
+                  onclick="compartilharJogo(this)">
+                  <i class="bi bi-share"></i> Compartilhar
+                </button>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-3">Nenhum jogo agendado ainda.</p>
+            <a class="btn btn-sm btn-brand" href="{{ url_for('jogo_novo', data=d.isoformat()) }}">
+              <i class="bi bi-plus-lg"></i> Agendar jogo
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

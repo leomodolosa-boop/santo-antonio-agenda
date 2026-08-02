@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Agenda de Futebol{% endblock %}</title>
+  {% if escudo_fixo %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='escudos/' ~ escudo_fixo) }}">
+  {% endif %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sao-grena: #6b1522;
+      --sao-grena-escuro: #4a0f18;
+      --sao-verde: #0f4a2c;
+      --sao-verde-escuro: #0a3620;
+      --sao-dourado: #c9a227;
+      --bg-pagina: #eef1f3;
+      --texto-suave: #6c757d;
+    }
+
+    * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg-pagina);
+      color: #222;
+    }
+
+    /* ---------- Navbar ---------- */
+    .navbar-custom {
+      background: linear-gradient(100deg, var(--sao-grena) 0%, var(--sao-grena-escuro) 55%, var(--sao-verde-escuro) 100%);
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .navbar-brand { font-weight: 800; display: flex; align-items: center; gap: .6rem; letter-spacing: .2px; }
+    .navbar-brand img { height: 38px; width: auto; border-radius: 6px; }
+    .nav-link-custom {
+      color: rgba(255,255,255,.85) !important;
+      font-weight: 500;
+      padding: .5rem .9rem !important;
+      border-radius: 8px;
+      transition: background .15s ease, color .15s ease;
+    }
+    .nav-link-custom:hover { background: rgba(255,255,255,.12); color: #fff !important; }
+    .nav-link-custom.active { background: rgba(255,255,255,.18); color: #fff !important; }
+
+    /* ---------- Hero / page header ---------- */
+    .page-hero {
+      position: relative;
+      background: linear-gradient(120deg, var(--sao-grena) 0%, var(--sao-grena-escuro) 60%, var(--sao-verde-escuro) 100%);
+      color: #fff;
+      padding: 2rem 0 3.25rem;
+      margin-bottom: -2rem;
+      overflow: hidden;
+    }
+    {% if escudo_fixo %}
+    .page-hero::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 2rem;
+      transform: translateY(-50%);
+      width: 190px;
+      height: 190px;
+      background-image: url('{{ url_for("static", filename="escudos/" ~ escudo_fixo) }}');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: .16;
+      pointer-events: none;
+    }
+    {% endif %}
+    .page-hero .container { position: relative; z-index: 1; }
+    .page-hero h1 { font-weight: 800; font-size: 1.6rem; margin: 0; }
+    .page-hero .subtitle { color: rgba(255,255,255,.8); font-size: .95rem; }
+
+    .content-shell {
+      background: transparent;
+      padding-bottom: 3rem;
+    }
+
+    /* ---------- Cards ---------- */
+    .card {
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(20, 20, 40, .08);
+    }
+    .card-jogo { border-top: 4px solid var(--sao-verde); }
+    .card-pendente { border-top: 4px solid var(--sao-dourado); }
+    .card-livre { border-top: 4px solid #d7dbe0; opacity: 0.95; }
+
+    /* ---------- Badges & buttons ---------- */
+    .badge-confirmado { background: var(--sao-verde) !important; }
+    .badge-pendente { background: var(--sao-dourado) !important; color: #3a2e00 !important; }
+    .badge-cancelado { background: #9aa0a6 !important; }
+    .btn-outline-warning-brand {
+      border-color: var(--sao-dourado);
+      color: #7a6210;
+    }
+    .btn-outline-warning-brand:hover { background: var(--sao-dourado); color: #3a2e00; }
+    .btn-brand {
+      background: var(--sao-verde);
+      border-color: var(--sao-verde);
+      color: #fff;
+    }
+    .btn-brand:hover { background: var(--sao-verde-escuro); border-color: var(--sao-verde-escuro); color: #fff; }
+    .btn-outline-brand {
+      border-color: var(--sao-grena);
+      color: var(--sao-grena);
+    }
+    .btn-outline-brand:hover { background: var(--sao-grena); color: #fff; }
+
+    .pill-nav .btn { border-radius: 999px; }
+
+    .escudo-circulo {
+      width: 46px; height: 46px; border-radius: 50%;
+      object-fit: cover; background: #fff; border: 1px solid #e3e6ea;
+    }
+    .escudo-placeholder-circulo {
+      width: 46px; height: 46px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: #eef1f3; color: #b3b9bf; font-size: 1.2rem; border: 1px solid #e3e6ea;
+    }
+
+    footer.app-footer {
+      color: var(--texto-suave);
+      font-size: .82rem;
+      text-align: center;
+      padding: 1.5rem 0;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        {% if escudo_fixo %}
+          <img src="{{ url_for('static', filename='escudos/' ~ escudo_fixo) }}" alt="Escudo Santo Antônio do Oriente">
+        {% else %}
+          <i class="bi bi-shield-fill fs-4"></i>
+        {% endif %}
+        Agenda Santo Antônio do Oriente
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navMenu">
+        <div class="d-flex gap-1 flex-wrap">
+          <a class="nav-link-custom {{ 'active' if request.endpoint in ('index','calendario') }}" href="{{ url_for('index') }}">
+            <i class="bi bi-calendar3"></i> Calendário
+          </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint == 'historico' }}" href="{{ url_for('historico') }}">
+            <i class="bi bi-clock-history"></i> Histórico
+          </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint in ('times','times_editar') }}" href="{{ url_for('times') }}">
+            <i class="bi bi-shield"></i> Times
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {% block hero %}{% endblock %}
+
+  <div class="container content-shell">
+    {% block content %}{% endblock %}
+  </div>
+
+  <footer class="app-footer">
+    Agenda Santo Antônio do Oriente &middot; futebol amador veterano
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function agendaWrapText(ctx, text, x, y, maxWidth, lineHeight, align) {
+      ctx.textAlign = align || 'center';
+      const words = String(text).split(' ');
+      let line = '';
+      let curY = y;
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line, x, curY);
+          line = words[n] + ' ';
+          curY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, curY);
+      return curY;
+    }
+
+    function agendaRoundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function agendaCarregarImagem(src) {
+      return new Promise((resolve) => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+
+    function agendaDesenharEscudo(ctx, img, cx, cy, r) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.clip();
+      if (img) {
+        const lado = Math.min(img.width, img.height);
+        const sx = (img.width - lado) / 2;
+        const sy = (img.height - lado) / 2;
+        ctx.drawImage(img, sx, sy, lado, lado, cx - r, cy - r, r * 2, r * 2);
+      } else {
+        ctx.fillStyle = '#eef1f3';
+        ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+        ctx.fillStyle = '#b3b9bf';
+        ctx.font = '700 ' + Math.floor(r * 1.1) + 'px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚽', cx, cy);
+        ctx.textBaseline = 'alphabetic';
+      }
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#c9a227';
+      ctx.stroke();
+    }
+
+    async function agendaGerarImagemJogo({ timeFixo, escudoFixo, adversario, escudoAdversario, data, hora, local }) {
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) {}
+      }
+
+      const W = 1080, H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#6b1522');
+      grad.addColorStop(0.30, '#6b1522');
+      grad.addColorStop(0.30, '#f6f6f4');
+      grad.addColorStop(0.68, '#f6f6f4');
+      grad.addColorStop(0.68, '#0f4a2c');
+      grad.addColorStop(1, '#0f4a2c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 60px Inter, sans-serif';
+      ctx.fillText('JOGO CONFIRMADO', W / 2, 130);
+
+      ctx.font = '500 30px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.fillText('Futebol amador veterano', W / 2, 175);
+
+      const [imgFixo, imgAdv] = await Promise.all([
+        agendaCarregarImagem(escudoFixo),
+        agendaCarregarImagem(escudoAdversario),
+      ]);
+
+      const centerY = 480;
+      const raio = 150;
+      agendaDesenharEscudo(ctx, imgFixo, W / 2 - 230, centerY, raio);
+      agendaDesenharEscudo(ctx, imgAdv, W / 2 + 230, centerY, raio);
+
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = '800 54px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('X', W / 2, centerY + 18);
+
+      ctx.font = '700 38px Inter, sans-serif';
+      ctx.fillStyle = '#1a1a1a';
+      agendaWrapText(ctx, timeFixo, W / 2 - 230, centerY + raio + 60, 340, 44);
+      agendaWrapText(ctx, adversario, W / 2 + 230, centerY + raio + 60, 340, 44);
+
+      const boxY = 950;
+      ctx.fillStyle = '#0f4a2c';
+      agendaRoundRect(ctx, 70, boxY, W - 140, H - boxY - 60, 24);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.font = '600 40px Inter, sans-serif';
+      let linhaY = boxY + 70;
+      ctx.fillText('📅  ' + data, 120, linhaY);
+      if (hora) {
+        linhaY += 62;
+        ctx.fillText('🕒  ' + hora, 120, linhaY);
+      }
+      if (local) {
+        linhaY += 62;
+        agendaWrapText(ctx, '📍  ' + local, 120, linhaY, W - 260, 46, 'left');
+      }
+
+      return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    }
+
+    async function compartilharJogo(btn) {
+      const d = btn.dataset;
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando...';
+      try {
+        const blob = await agendaGerarImagemJogo({
+          timeFixo: d.timeFixo,
+          escudoFixo: d.escudoFixo || null,
+          adversario: d.adversario,
+          escudoAdversario: d.escudoAdversario || null,
+          data: d.data,
+          hora: d.hora,
+          local: d.local,
+        });
+        const nomeArquivo = 'jogo-' + d.adversario.replace(/\s+/g, '-').toLowerCase() + '.png';
+        const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+        const textoCompartilhar = 'Jogo confirmado: ' + d.timeFixo + ' x ' + d.adversario + ' - ' + d.data +
+          (d.hora ? ' as ' + d.hora : '') + (d.local ? ' - ' + d.local : '');
+
+        if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+          await navigator.share({ files: [arquivo], title: 'Jogo confirmado', text: textoCompartilhar });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = nomeArquivo;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          alert('Imagem baixada! Agora e so anexar no WhatsApp.');
+        }
+      } catch (erro) {
+        console.error(erro);
+        alert('Nao foi possivel gerar a imagem.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+    }
+  </script>
+</body>
+</html>

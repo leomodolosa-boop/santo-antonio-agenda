@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Histórico de jogos{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-clock-history me-1"></i> Histórico de jogos</h1>
+    <div class="subtitle">Jogos já realizados — {{ time_fixo }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if not jogos %}
+  <div class="card">
+    <div class="card-body text-center text-muted py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+      Nenhum jogo passado registrado ainda.
+    </div>
+  </div>
+{% else %}
+<div class="card">
+  <div class="table-responsive">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Data</th>
+        <th>Adversário</th>
+        <th>Local</th>
+        <th>Status</th>
+        <th>Placar</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jogos %}
+      <tr>
+        <td class="text-secondary">{{ j.data }}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {% if j.adversario_escudo %}
+              <img class="escudo-circulo" style="width:32px;height:32px" src="{{ url_for('static', filename='escudos/' ~ j.adversario_escudo) }}" alt="{{ j.adversario_nome }}">
+            {% else %}
+              <span class="escudo-placeholder-circulo" style="width:32px;height:32px;font-size:.9rem"><i class="bi bi-shield"></i></span>
+            {% endif %}
+            <span class="fw-semibold">{{ time_fixo }} x {{ j.adversario_nome }}</span>
+          </div>
+        </td>
+        <td class="text-secondary">{{ j.local or '—' }}</td>
+        <td>
+          {% set badge_class = 'badge-confirmado' if j.status == 'confirmado' else ('badge-pendente' if j.status == 'pendente' else 'badge-cancelado') %}
+          {% set status_label = 'Pendente de confirmação' if j.status == 'pendente' else j.status|capitalize %}
+          <span class="badge rounded-pill {{ badge_class }}">{{ status_label }}</span>
+        </td>
+        <td>
+          {% if j.placar_santo is not none and j.placar_adversario is not none %}
+            <strong>{{ j.placar_santo }} x {{ j.placar_adversario }}</strong>
+          {% else %}
+            <span class="text-secondary">—</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-brand" href="{{ url_for('jogo_editar', jogo_id=j.id) }}"><i class="bi bi-pencil"></i> Editar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

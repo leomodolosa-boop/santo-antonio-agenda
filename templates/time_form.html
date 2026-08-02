@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Editar time — {{ time.nome }}{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-pencil-square me-1"></i> {{ time.nome }}</h1>
+    <div class="subtitle">Editar cadastro do time</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-body p-4">
+    <form method="post" enctype="multipart/form-data">
+
+      <div class="row mb-4 align-items-center">
+        <div class="col-md-3 text-center">
+          {% if time.escudo %}
+            <img src="{{ url_for('static', filename='escudos/' ~ time.escudo) }}" alt="Escudo {{ time.nome }}"
+                 style="width:96px;height:96px;object-fit:contain;" class="border rounded-circle p-1 bg-white">
+          {% else %}
+            <span class="escudo-placeholder-circulo mx-auto" style="width:96px;height:96px;font-size:2.2rem"><i class="bi bi-shield"></i></span>
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <label class="form-label">{{ 'Trocar escudo' if time.escudo else 'Enviar escudo' }} (PNG)</label>
+          <input type="file" class="form-control" name="escudo" accept="image/png">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Município</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-geo"></i></span>
+            <input type="text" class="form-control" name="cidade" value="{{ time.cidade or '' }}" placeholder="Ex: Venda Nova do Imigrante">
+          </div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Nome do campo</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-flag"></i></span>
+            <input type="text" class="form-control" name="nome_campo" value="{{ time.nome_campo or '' }}" placeholder="Ex: Campo do São Roque">
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Endereço</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-signpost-split"></i></span>
+          <input type="text" class="form-control" name="endereco" value="{{ time.endereco or '' }}" placeholder="Rua, número, bairro">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Contato</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+          <input type="text" class="form-control" name="contato" value="{{ time.contato or '' }}" placeholder="Telefone/responsável (opcional)">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between border-top pt-3">
+        <a href="{{ url_for('times') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <button type="submit" class="btn btn-brand"><i class="bi bi-check-lg"></i> Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

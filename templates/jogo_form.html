@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar jogo' if jogo else 'Agendar jogo' }}{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-{{ 'pencil-square' if jogo else 'calendar-plus' }} me-1"></i> {{ 'Editar jogo' if jogo else 'Agendar jogo' }}</h1>
+    <div class="subtitle">Sábado, {{ data_str }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-body p-4">
+    <form method="post">
+      <input type="hidden" name="data" value="{{ data_str }}">
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold d-block">{{ time_fixo }} <span class="text-secondary">x</span></label>
+        <div class="row row-cols-3 row-cols-sm-4 row-cols-md-6 g-2 escudo-picker">
+          {% for t in adversarios %}
+            {% set marcado = jogo and jogo.adversario_id == t.id %}
+            <div class="col">
+              <input type="radio" class="btn-check" name="adversario_id" id="time-{{ t.id }}"
+                     value="{{ t.id }}" {% if marcado %}checked{% endif %} required>
+              <label class="escudo-card d-flex flex-column align-items-center text-center p-2 h-100" for="time-{{ t.id }}">
+                {% if t.escudo %}
+                  <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="{{ t.nome }}">
+                {% else %}
+                  <span class="escudo-placeholder"><i class="bi bi-shield"></i></span>
+                {% endif %}
+                <small class="mt-1">{{ t.nome }}</small>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Horário</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-clock"></i></span>
+            <input type="time" class="form-control" name="hora" value="{{ jogo.hora if jogo else '' }}">
+          </div>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">Local</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
+            <input type="text" class="form-control" name="local" value="{{ jogo.local if jogo else '' }}" placeholder="Ex: Campo do Santo Antônio">
+          </div>
+        </div>
+      </div>
+
+      {% if jogo %}
+      <div class="mb-3">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          <option value="pendente" {% if jogo.status == 'pendente' %}selected{% endif %}>Pendente de confirmação</option>
+          <option value="confirmado" {% if jogo.status == 'confirmado' %}selected{% endif %}>Confirmado</option>
+          <option value="cancelado" {% if jogo.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+        </select>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label class="form-label">Placar {{ time_fixo }}</label>
+          <input type="number" min="0" class="form-control" name="placar_santo" value="{{ jogo.placar_santo if jogo.placar_santo is not none else '' }}">
+        </div>
+        <div class="col">
+          <label class="form-label">Placar adversário</label>
+          <input type="number" min="0" class="form-control" name="placar_adversario" value="{{ jogo.placar_adversario if jogo.placar_adversario is not none else '' }}">
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mb-4">
+        <label class="form-label">Observação</label>
+        <textarea class="form-control" name="observacao" rows="2">{{ jogo.observacao if jogo else '' }}</textarea>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-between border-top pt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <div class="d-flex gap-2">
+          {% if jogo %}
+            <button type="submit" name="excluir" value="1" class="btn btn-outline-danger"
+              onclick="return confirm('Excluir este jogo?')"><i class="bi bi-trash"></i> Excluir</button>
+          {% endif %}
+          <button type="submit" class="btn btn-brand"><i class="bi bi-check-lg"></i> Salvar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .escudo-card {
+    border: 2px solid #e3e6ea;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #fff;
+    min-height: 100px;
+    font-size: .8rem;
+    transition: border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .escudo-card:hover { border-color: var(--sao-verde); transform: translateY(-1px); }
+  .escudo-card img { width: 44px; height: 44px; object-fit: contain; }
+  .escudo-placeholder { font-size: 1.6rem; color: #b3b9bf; }
+  .btn-check:checked + .escudo-card {
+    border-color: var(--sao-verde);
+    background: #e6f2ec;
+    box-shadow: 0 0 0 2px var(--sao-verde) inset;
+  }
+</style>
+
+{% endblock %}

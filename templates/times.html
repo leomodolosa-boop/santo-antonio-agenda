@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Times{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-shield me-1"></i> Times cadastrados</h1>
+    <div class="subtitle">{{ times|length }} times na base</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+  <div class="card-body p-4">
+    <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo time</h5>
+    <p class="text-muted small mb-3">Depois de adicionar, use "Editar" na lista para completar município, nome do campo e endereço.</p>
+    <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <input type="text" class="form-control" name="nome" placeholder="Nome do time" required>
+      </div>
+      <div class="col-md-5">
+        <input type="file" class="form-control" name="escudo" accept="image/png">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-brand w-100"><i class="bi bi-plus-lg"></i> Adicionar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th></th>
+        <th>Nome</th>
+        <th>Município</th>
+        <th>Campo</th>
+        <th>Endereço</th>
+        <th>Contato</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in times %}
+      <tr>
+        <td style="width:60px">
+          {% if t.escudo %}
+            <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="Escudo {{ t.nome }}">
+          {% else %}
+            <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
+          {% endif %}
+        </td>
+        <td class="fw-semibold">
+          {{ t.nome }}
+          {% if t.is_fixo %}<span class="badge rounded-pill badge-confirmado ms-1">time fixo</span>{% endif %}
+        </td>
+        <td class="text-secondary">{{ t.cidade or '—' }}</td>
+        <td class="text-secondary">{{ t.nome_campo or '—' }}</td>
+        <td class="text-secondary">{{ t.endereco or '—' }}</td>
+        <td class="text-secondary">{{ t.contato or '—' }}</td>
+        <td class="text-end">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('times_editar', time_id=t.id) }}" class="btn btn-sm btn-outline-brand">
+              <i class="bi bi-pencil"></i> Editar
+            </a>
+            {% if not t.is_fixo %}
+            <form method="post" action="{{ url_for('times_excluir', time_id=t.id) }}" onsubmit="return confirm('Excluir {{ t.nome }}?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endblock %}
