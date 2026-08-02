@@ -116,13 +116,15 @@
     .pill-nav .btn { border-radius: 999px; }
 
     .escudo-circulo {
-      width: 46px; height: 46px; border-radius: 50%;
-      object-fit: cover; background: #fff; border: 1px solid #e3e6ea;
+      width: 46px; height: 46px; border-radius: 12px;
+      object-fit: contain; background: #fff; border: 1px solid #e3e6ea;
+      padding: 3px; box-shadow: 0 2px 6px rgba(20,20,40,.12);
     }
     .escudo-placeholder-circulo {
-      width: 46px; height: 46px; border-radius: 50%;
+      width: 46px; height: 46px; border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
       background: #eef1f3; color: #b3b9bf; font-size: 1.2rem; border: 1px solid #e3e6ea;
+      box-shadow: 0 2px 6px rgba(20,20,40,.12);
     }
 
     footer.app-footer {
@@ -216,33 +218,47 @@
       });
     }
 
-    function agendaDesenharEscudo(ctx, img, cx, cy, r) {
+    function agendaDesenharEscudo(ctx, img, cx, cy, tamanho) {
+      const raioCanto = tamanho * 0.14;
+      const x = cx - tamanho / 2;
+      const y = cy - tamanho / 2;
+
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.closePath();
+      ctx.shadowColor = 'rgba(0,0,0,.28)';
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 8;
+      agendaRoundRect(ctx, x, y, tamanho, tamanho, raioCanto);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      agendaRoundRect(ctx, x, y, tamanho, tamanho, raioCanto);
       ctx.clip();
       if (img) {
-        const lado = Math.min(img.width, img.height);
-        const sx = (img.width - lado) / 2;
-        const sy = (img.height - lado) / 2;
-        ctx.drawImage(img, sx, sy, lado, lado, cx - r, cy - r, r * 2, r * 2);
+        // "contain": mostra o brasão inteiro, sem cortar pontas de escudo,
+        // com respiro nas bordas mesmo quando o PNG não é transparente.
+        const padding = tamanho * 0.14;
+        const areaMax = tamanho - padding * 2;
+        const escala = Math.min(areaMax / img.width, areaMax / img.height);
+        const w = img.width * escala;
+        const h = img.height * escala;
+        ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
       } else {
         ctx.fillStyle = '#eef1f3';
-        ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+        ctx.fillRect(x, y, tamanho, tamanho);
         ctx.fillStyle = '#b3b9bf';
-        ctx.font = '700 ' + Math.floor(r * 1.1) + 'px Inter, sans-serif';
+        ctx.font = '700 ' + Math.floor(tamanho * 0.4) + 'px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('⚽', cx, cy);
         ctx.textBaseline = 'alphabetic';
       }
       ctx.restore();
+
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.lineWidth = 6;
+      agendaRoundRect(ctx, x, y, tamanho, tamanho, raioCanto);
+      ctx.lineWidth = 5;
       ctx.strokeStyle = '#c9a227';
       ctx.stroke();
     }
@@ -270,22 +286,38 @@
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
-      ctx.font = '800 60px Inter, sans-serif';
-      ctx.fillText('JOGO CONFIRMADO', W / 2, 130);
+      ctx.font = '800 58px Inter, sans-serif';
+      ctx.fillText('JOGO CONFIRMADO', W / 2, 118);
 
-      ctx.font = '500 30px Inter, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,.9)';
-      ctx.fillText('Futebol amador veterano', W / 2, 175);
+      ctx.font = '600 26px Inter, sans-serif';
+      const subtitulo = 'FUTEBOL AMADOR VETERANO';
+      const larguraSubtitulo = ctx.measureText(subtitulo).width;
+      const pillW = larguraSubtitulo + 64;
+      const pillH = 52;
+      const pillX = W / 2 - pillW / 2;
+      const pillY = 148;
+      ctx.save();
+      agendaRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,.4)';
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(subtitulo, W / 2, pillY + pillH / 2 + 2);
+      ctx.textBaseline = 'alphabetic';
 
       const [imgFixo, imgAdv] = await Promise.all([
         agendaCarregarImagem(escudoFixo),
         agendaCarregarImagem(escudoAdversario),
       ]);
 
-      const centerY = 480;
-      const raio = 150;
-      agendaDesenharEscudo(ctx, imgFixo, W / 2 - 230, centerY, raio);
-      agendaDesenharEscudo(ctx, imgAdv, W / 2 + 230, centerY, raio);
+      const centerY = 500;
+      const tamanhoEscudo = 300;
+      agendaDesenharEscudo(ctx, imgFixo, W / 2 - 230, centerY, tamanhoEscudo);
+      agendaDesenharEscudo(ctx, imgAdv, W / 2 + 230, centerY, tamanhoEscudo);
 
       ctx.fillStyle = '#1a1a1a';
       ctx.font = '800 54px Inter, sans-serif';
@@ -294,8 +326,8 @@
 
       ctx.font = '700 38px Inter, sans-serif';
       ctx.fillStyle = '#1a1a1a';
-      agendaWrapText(ctx, timeFixo, W / 2 - 230, centerY + raio + 60, 340, 44);
-      agendaWrapText(ctx, adversario, W / 2 + 230, centerY + raio + 60, 340, 44);
+      agendaWrapText(ctx, timeFixo, W / 2 - 230, centerY + tamanhoEscudo / 2 + 70, 340, 44);
+      agendaWrapText(ctx, adversario, W / 2 + 230, centerY + tamanhoEscudo / 2 + 70, 340, 44);
 
       const boxY = 950;
       ctx.fillStyle = '#0f4a2c';

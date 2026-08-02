@@ -20,7 +20,7 @@
         <div class="col-md-3 text-center">
           {% if time.escudo %}
             <img src="{{ url_for('static', filename='escudos/' ~ time.escudo) }}" alt="Escudo {{ time.nome }}"
-                 style="width:96px;height:96px;object-fit:contain;" class="border rounded-circle p-1 bg-white">
+                 class="escudo-circulo mx-auto" style="width:96px;height:96px;padding:6px">
           {% else %}
             <span class="escudo-placeholder-circulo mx-auto" style="width:96px;height:96px;font-size:2.2rem"><i class="bi bi-shield"></i></span>
           {% endif %}
