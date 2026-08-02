@@ -118,15 +118,16 @@ def jogo_novo():
 
     if request.method == "POST":
         adversario_id = request.form["adversario_id"]
+        mandante = request.form.get("mandante", "casa")
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
         observacao = request.form.get("observacao", "").strip()
         conn.execute(
             """
-            INSERT INTO jogos (data, hora, adversario_id, local, status, observacao)
-            VALUES (?, ?, ?, ?, 'pendente', ?)
+            INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+            VALUES (?, ?, ?, ?, ?, 'pendente', ?)
             """,
-            (request.form["data"], hora, adversario_id, local, observacao),
+            (request.form["data"], hora, adversario_id, mandante, local, observacao),
         )
         conn.commit()
         d = date.fromisoformat(request.form["data"])
@@ -160,6 +161,7 @@ def jogo_editar(jogo_id):
             return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
         adversario_id = request.form["adversario_id"]
+        mandante = request.form.get("mandante", "casa")
         nova_data = request.form["data"]
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
@@ -176,11 +178,11 @@ def jogo_editar(jogo_id):
                 conn.execute(
                     """
                     UPDATE jogos
-                    SET adversario_id = ?, data = ?, hora = ?, local = ?, observacao = ?, status = ?,
+                    SET adversario_id = ?, mandante = ?, data = ?, hora = ?, local = ?, observacao = ?, status = ?,
                         placar_santo = ?, placar_adversario = ?
                     WHERE id = ?
                     """,
-                    (adversario_id, nova_data, hora, local, observacao, status,
+                    (adversario_id, mandante, nova_data, hora, local, observacao, status,
                      placar_santo, placar_adversario, jogo_id),
                 )
                 conn.commit()

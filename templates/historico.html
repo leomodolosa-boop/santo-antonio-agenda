@@ -35,16 +35,27 @@
     </thead>
     <tbody>
       {% for j in jogos %}
+      {% set mandante_casa = j.mandante != 'fora' %}
+      {% set time_a_nome = time_fixo if mandante_casa else j.adversario_nome %}
+      {% set time_a_escudo = escudo_fixo if mandante_casa else j.adversario_escudo %}
+      {% set time_b_nome = j.adversario_nome if mandante_casa else time_fixo %}
+      {% set time_b_escudo = j.adversario_escudo if mandante_casa else escudo_fixo %}
       <tr>
         <td class="text-secondary">{{ j.data }}</td>
         <td>
           <div class="d-flex align-items-center gap-2">
-            {% if j.adversario_escudo %}
-              <img class="escudo-circulo" style="width:32px;height:32px" src="{{ url_for('static', filename='escudos/' ~ j.adversario_escudo) }}" alt="{{ j.adversario_nome }}">
+            {% if time_a_escudo %}
+              <img class="escudo-circulo" style="width:32px;height:32px" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
             {% else %}
               <span class="escudo-placeholder-circulo" style="width:32px;height:32px;font-size:.9rem"><i class="bi bi-shield"></i></span>
             {% endif %}
-            <span class="fw-semibold">{{ time_fixo }} x {{ j.adversario_nome }}</span>
+            <span class="fw-semibold">{{ time_a_nome }} x {{ time_b_nome }}</span>
+            {% if time_b_escudo %}
+              <img class="escudo-circulo" style="width:32px;height:32px" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
+            {% else %}
+              <span class="escudo-placeholder-circulo" style="width:32px;height:32px;font-size:.9rem"><i class="bi bi-shield"></i></span>
+            {% endif %}
+            <i class="bi bi-{{ 'house-door' if mandante_casa else 'airplane' }} text-secondary" title="{{ 'Jogo em casa' if mandante_casa else 'Jogo fora' }}"></i>
           </div>
         </td>
         <td class="text-secondary">{{ j.local or '—' }}</td>
