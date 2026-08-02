@@ -19,7 +19,7 @@
         <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
       </div>
     {% endif %}
-    <form method="post">
+    <form method="post" id="form-jogo">
       {% if jogo %}
         <div class="mb-4">
           <label class="form-label">Data (sábado)</label>
@@ -53,22 +53,29 @@
 
       <div class="mb-4">
         <label class="form-label fw-semibold d-block">Adversário</label>
-        <div class="row row-cols-3 row-cols-sm-4 row-cols-md-6 g-2 escudo-picker">
-          {% for t in adversarios %}
-            {% set marcado = jogo and jogo.adversario_id == t.id %}
-            <div class="col">
-              <input type="radio" class="btn-check" name="adversario_id" id="time-{{ t.id }}"
-                     value="{{ t.id }}" {% if marcado %}checked{% endif %} required>
-              <label class="escudo-card d-flex flex-column align-items-center text-center p-2 h-100" for="time-{{ t.id }}">
+        <div class="time-picker-wrapper position-relative" id="time-picker-wrapper">
+          <input type="hidden" name="adversario_id" id="adversario_id_input"
+                 value="{{ jogo.adversario_id if jogo else '' }}">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="adversario_busca" autocomplete="off"
+                   placeholder="Buscar time..."
+                   value="{% if jogo %}{% for t in adversarios %}{% if t.id == jogo.adversario_id %}{{ t.nome }}{% endif %}{% endfor %}{% endif %}"
+                   onfocus="agendaAbrirListaTimes()" oninput="agendaFiltrarTimes(this.value)">
+          </div>
+          <div id="lista-times-flutuante" class="time-picker-dropdown">
+            {% for t in adversarios %}
+              <div class="time-picker-item" data-nome="{{ t.nome|lower }}"
+                   onclick="agendaSelecionarTime('{{ t.id }}', '{{ t.nome|e }}', '{{ url_for('static', filename='escudos/' ~ t.escudo) if t.escudo else '' }}')">
                 {% if t.escudo %}
-                  <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="{{ t.nome }}">
+                  <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="">
                 {% else %}
-                  <span class="escudo-placeholder"><i class="bi bi-shield"></i></span>
+                  <span class="time-picker-placeholder"><i class="bi bi-shield"></i></span>
                 {% endif %}
-                <small class="mt-1">{{ t.nome }}</small>
-              </label>
-            </div>
-          {% endfor %}
+                <span>{{ t.nome }}</span>
+              </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
 
@@ -131,23 +138,71 @@
 </div>
 
 <style>
-  .escudo-card {
-    border: 2px solid #e3e6ea;
-    border-radius: 12px;
-    cursor: pointer;
+  .time-picker-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    max-height: 320px;
+    overflow-y: auto;
     background: #fff;
-    min-height: 100px;
-    font-size: .8rem;
-    transition: border-color .15s ease, background .15s ease, transform .1s ease;
+    border: 1px solid #e3e6ea;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(20,20,40,.18);
+    padding: .4rem;
   }
-  .escudo-card:hover { border-color: var(--sao-verde); transform: translateY(-1px); }
-  .escudo-card img { width: 44px; height: 44px; object-fit: contain; }
-  .escudo-placeholder { font-size: 1.6rem; color: #b3b9bf; }
-  .btn-check:checked + .escudo-card {
-    border-color: var(--sao-verde);
-    background: #e6f2ec;
-    box-shadow: 0 0 0 2px var(--sao-verde) inset;
+  .time-picker-dropdown.aberta { display: block; }
+  .time-picker-item {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .5rem .6rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .time-picker-item:hover { background: #eef1f3; }
+  .time-picker-item img {
+    width: 34px; height: 34px; object-fit: contain; border-radius: 7px;
+    background: #fff; border: 1px solid #e3e6ea; flex-shrink: 0;
+  }
+  .time-picker-placeholder {
+    width: 34px; height: 34px; border-radius: 7px; background: #eef1f3; color: #b3b9bf;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+    border: 1px solid #e3e6ea; flex-shrink: 0;
   }
 </style>
+
+<script>
+  function agendaAbrirListaTimes() {
+    document.getElementById('lista-times-flutuante').classList.add('aberta');
+  }
+  function agendaFiltrarTimes(termo) {
+    termo = termo.toLowerCase();
+    document.querySelectorAll('.time-picker-item').forEach(function (item) {
+      item.style.display = item.dataset.nome.indexOf(termo) !== -1 ? 'flex' : 'none';
+    });
+    agendaAbrirListaTimes();
+  }
+  function agendaSelecionarTime(id, nome, escudo) {
+    document.getElementById('adversario_id_input').value = id;
+    document.getElementById('adversario_busca').value = nome;
+    document.getElementById('lista-times-flutuante').classList.remove('aberta');
+  }
+  document.addEventListener('click', function (e) {
+    var wrapper = document.getElementById('time-picker-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      document.getElementById('lista-times-flutuante').classList.remove('aberta');
+    }
+  });
+  document.getElementById('form-jogo').addEventListener('submit', function (e) {
+    if (!document.getElementById('adversario_id_input').value) {
+      e.preventDefault();
+      alert('Selecione o adversário.');
+      document.getElementById('adversario_busca').focus();
+    }
+  });
+</script>
 
 {% endblock %}
