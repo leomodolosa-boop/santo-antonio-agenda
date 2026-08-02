@@ -40,7 +40,15 @@
   {% for d in sabados %}
     {% set jogo = jogos_por_data.get(d.isoformat()) %}
     <div class="col">
-      {% set card_status = 'card-jogo' if jogo and jogo.status == 'confirmado' else ('card-pendente' if jogo and jogo.status == 'pendente' else 'card-livre') %}
+      {% if jogo and jogo.status == 'confirmado' %}
+        {% set card_status = 'card-jogo' %}
+      {% elif jogo and jogo.status == 'pendente' %}
+        {% set card_status = 'card-pendente' %}
+      {% elif jogo and jogo.status == 'cancelado' %}
+        {% set card_status = 'card-cancelado' %}
+      {% else %}
+        {% set card_status = 'card-livre' %}
+      {% endif %}
       <div class="card {{ card_status }} h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
@@ -92,6 +100,17 @@
                   onclick="compartilharJogo(this)">
                   <i class="bi bi-share"></i> Compartilhar
                 </button>
+              {% endif %}
+              {% if jogo.status in ('pendente', 'confirmado') %}
+                <form method="post" action="{{ url_for('jogo_cancelar', jogo_id=jogo.id) }}"
+                  onsubmit="return confirm('O adversário desmarcou? Isso vai marcar o jogo como cancelado.')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar jogo</button>
+                </form>
+              {% endif %}
+              {% if jogo.status == 'cancelado' %}
+                <form method="post" action="{{ url_for('jogo_reabrir', jogo_id=jogo.id) }}">
+                  <button type="submit" class="btn btn-sm btn-outline-brand"><i class="bi bi-arrow-counterclockwise"></i> Reabrir jogo</button>
+                </form>
               {% endif %}
             </div>
           {% else %}

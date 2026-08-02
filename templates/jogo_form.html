@@ -14,8 +14,25 @@
 
 <div class="card">
   <div class="card-body p-4">
+    {% if erro %}
+      <div class="alert alert-danger d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
+      </div>
+    {% endif %}
     <form method="post">
-      <input type="hidden" name="data" value="{{ data_str }}">
+      {% if jogo %}
+        <div class="mb-4">
+          <label class="form-label">Data (sábado)</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+            <input type="date" class="form-control" name="data" value="{{ data_str }}"
+                   onchange="if(new Date(this.value+'T00:00:00').getDay()!==6){alert('A data precisa ser um sábado.');this.value='{{ data_str }}';}">
+          </div>
+          <div class="form-text">Use para remarcar o jogo para outro sábado.</div>
+        </div>
+      {% else %}
+        <input type="hidden" name="data" value="{{ data_str }}">
+      {% endif %}
 
       <div class="mb-4">
         <label class="form-label fw-semibold d-block">{{ time_fixo }} <span class="text-secondary">x</span></label>

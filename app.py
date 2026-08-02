@@ -1,4 +1,5 @@
 import calendar
+import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -159,23 +160,51 @@ def jogo_editar(jogo_id):
             return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
         adversario_id = request.form["adversario_id"]
+        nova_data = request.form["data"]
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
         observacao = request.form.get("observacao", "").strip()
         status = request.form.get("status", "confirmado")
         placar_santo = request.form.get("placar_santo") or None
         placar_adversario = request.form.get("placar_adversario") or None
-        conn.execute(
-            """
-            UPDATE jogos
-            SET adversario_id = ?, hora = ?, local = ?, observacao = ?, status = ?,
-                placar_santo = ?, placar_adversario = ?
-            WHERE id = ?
-            """,
-            (adversario_id, hora, local, observacao, status, placar_santo, placar_adversario, jogo_id),
-        )
-        conn.commit()
-        d = date.fromisoformat(request.form["data"])
+
+        erro = None
+        if date.fromisoformat(nova_data).weekday() != 5:
+            erro = "A data precisa ser um sábado."
+        else:
+            try:
+                conn.execute(
+                    """
+                    UPDATE jogos
+                    SET adversario_id = ?, data = ?, hora = ?, local = ?, observacao = ?, status = ?,
+                        placar_santo = ?, placar_adversario = ?
+                    WHERE id = ?
+                    """,
+                    (adversario_id, nova_data, hora, local, observacao, status,
+                     placar_santo, placar_adversario, jogo_id),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                erro = "Já existe um jogo agendado para essa data."
+
+        if erro:
+            adversarios = conn.execute(
+                "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
+            ).fetchall()
+            jogo_atual = dict(request.form)
+            jogo_atual["id"] = jogo_id
+            jogo_atual["adversario_id"] = int(adversario_id)
+            conn.close()
+            return render_template(
+                "jogo_form.html",
+                jogo=jogo_atual,
+                data_str=nova_data,
+                adversarios=adversarios,
+                time_fixo=TIME_FIXO,
+                erro=erro,
+            )
+
+        d = date.fromisoformat(nova_data)
         conn.close()
         return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
@@ -198,6 +227,28 @@ def jogo_confirmar(jogo_id):
     conn = get_conn()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
     conn.execute("UPDATE jogos SET status = 'confirmado' WHERE id = ?", (jogo_id,))
+    conn.commit()
+    conn.close()
+    d = date.fromisoformat(jogo["data"])
+    return redirect(url_for("calendario", ano=d.year, mes=d.month))
+
+
+@app.route("/jogo/<int:jogo_id>/cancelar", methods=["POST"])
+def jogo_cancelar(jogo_id):
+    conn = get_conn()
+    jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
+    conn.execute("UPDATE jogos SET status = 'cancelado' WHERE id = ?", (jogo_id,))
+    conn.commit()
+    conn.close()
+    d = date.fromisoformat(jogo["data"])
+    return redirect(url_for("calendario", ano=d.year, mes=d.month))
+
+
+@app.route("/jogo/<int:jogo_id>/reabrir", methods=["POST"])
+def jogo_reabrir(jogo_id):
+    conn = get_conn()
+    jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
+    conn.execute("UPDATE jogos SET status = 'pendente' WHERE id = ?", (jogo_id,))
     conn.commit()
     conn.close()
     d = date.fromisoformat(jogo["data"])
