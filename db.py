@@ -29,6 +29,32 @@ TIMES_INICIAIS = [
     "São José",
     "Perim FC - Garrafão",
     "Bacia",
+    "Amigos do Esporte",
+]
+
+TIME_FIXO_CIDADE = "Venda Nova do Imigrante"
+TIME_FIXO_CAMPO = "Campo do Santo Antônio do Oriente"
+TIME_FIXO_ENDERECO = "Comunidade Santo Antônio do Oriente, s/n"
+
+LOCAL_CASA = "Santo Antônio do Oriente - Venda Nova do Imigrante"
+
+# (data, nome_adversario, local, observacao) — agenda pré-definida da temporada 2026.
+# status sempre nasce 'pendente'; INSERT OR IGNORE preserva edições já feitas pelo usuário.
+JOGOS_INICIAIS = [
+    ("2026-08-01", "São Roque", LOCAL_CASA, ""),
+    ("2026-08-08", "Amigos do Esporte", LOCAL_CASA, ""),
+    ("2026-08-15", "São José", "", ""),
+    ("2026-08-22", "Pizzol", "", "Mandante a confirmar"),
+    ("2026-08-29", "São João", "", ""),
+    ("2026-09-05", "Fazenda Estado", LOCAL_CASA, ""),
+    ("2026-09-12", "Perim FC - Garrafão", LOCAL_CASA, ""),
+    ("2026-09-19", "Bacia", LOCAL_CASA, ""),
+    ("2026-10-03", "União FC", "Santa Luzia", ""),
+    ("2026-10-10", "Mata Fria", LOCAL_CASA, ""),
+    ("2026-10-31", "Corumbá", LOCAL_CASA, ""),
+    ("2026-11-07", "Amigos do Esporte", "", ""),
+    ("2026-11-28", "São José", LOCAL_CASA, ""),
+    ("2026-12-05", "Rancho Dantas", "", ""),
 ]
 
 
@@ -90,6 +116,30 @@ def init_db():
                 "INSERT INTO times (nome, is_fixo) VALUES (?, ?)",
                 (nome, 1 if nome == TIME_FIXO else 0),
             )
+    conn.commit()
+
+    conn.execute(
+        """
+        UPDATE times
+        SET cidade = COALESCE(cidade, ?), nome_campo = COALESCE(nome_campo, ?), endereco = COALESCE(endereco, ?)
+        WHERE is_fixo = 1
+        """,
+        (TIME_FIXO_CIDADE, TIME_FIXO_CAMPO, TIME_FIXO_ENDERECO),
+    )
+    conn.commit()
+
+    ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times")}
+    for data, nome_adversario, local, observacao in JOGOS_INICIAIS:
+        adversario_id = ids_times.get(nome_adversario)
+        if not adversario_id:
+            continue
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO jogos (data, adversario_id, local, status, observacao)
+            VALUES (?, ?, ?, 'pendente', ?)
+            """,
+            (data, adversario_id, local, observacao),
+        )
     conn.commit()
     conn.close()
 
