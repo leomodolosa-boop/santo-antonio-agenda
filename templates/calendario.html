@@ -47,7 +47,7 @@
             {% endif %}
           </div>
           <div class="confronto confronto-grande my-2"
-               style="{% if time_a_cor %}--cor-a-rgb: {{ time_a_cor|hex_para_rgb }};{% endif %} {% if time_b_cor %}--cor-b-rgb: {{ time_b_cor|hex_para_rgb }};{% endif %}">
+               style="--pos-santo: {{ '22%' if mandante_casa else '78%' }}; --pos-adv: {{ '78%' if mandante_casa else '22%' }}; {% set cor_adversario = time_b_cor if mandante_casa else time_a_cor %}{% if cor_adversario %}--cor-adv-rgb: {{ cor_adversario|hex_para_rgb }};{% endif %}">
             <div class="confronto-time">
               {% if time_a_escudo %}
                 <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
@@ -180,7 +180,7 @@
             {% set time_b_escudo = jogo.adversario_escudo if mandante_casa else escudo_fixo %}
             {% set time_b_cor = jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
             <div class="confronto my-3"
-                 style="{% if time_a_cor %}--cor-a-rgb: {{ time_a_cor|hex_para_rgb }};{% endif %} {% if time_b_cor %}--cor-b-rgb: {{ time_b_cor|hex_para_rgb }};{% endif %}">
+                 style="--pos-santo: {{ '22%' if mandante_casa else '78%' }}; --pos-adv: {{ '78%' if mandante_casa else '22%' }}; {% set cor_adversario = time_b_cor if mandante_casa else time_a_cor %}{% if cor_adversario %}--cor-adv-rgb: {{ cor_adversario|hex_para_rgb }};{% endif %}">
               <div class="confronto-time">
                 {% if time_a_escudo %}
                   <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
