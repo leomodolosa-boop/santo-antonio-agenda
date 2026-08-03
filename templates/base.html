@@ -210,6 +210,85 @@
       box-shadow: 0 2px 6px rgba(20,20,40,.12);
     }
 
+    /* ---------- Confronto (matchup com glassmorphism) ---------- */
+    .confronto {
+      --cor-a-rgb: 15, 74, 44;
+      --cor-b-rgb: 107, 21, 34;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1.25rem 1rem;
+      border-radius: 18px;
+      overflow: hidden;
+      isolation: isolate;
+      background: rgba(255, 255, 255, .55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, .5);
+      box-shadow: 0 4px 20px rgba(20, 20, 40, .06);
+    }
+    .confronto::before {
+      content: "";
+      position: absolute;
+      inset: -25%;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 22% 45%, rgba(var(--cor-a-rgb), .55) 0%, rgba(var(--cor-a-rgb), 0) 60%),
+        radial-gradient(circle at 78% 45%, rgba(var(--cor-b-rgb), .55) 0%, rgba(var(--cor-b-rgb), 0) 60%);
+      filter: blur(30px);
+      opacity: .6;
+    }
+    .confronto-time {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 108px;
+      flex-shrink: 0;
+    }
+    .confronto-escudo {
+      width: 56px; height: 56px; object-fit: contain; border-radius: 14px;
+      background: rgba(255, 255, 255, .8); border: 1px solid rgba(255, 255, 255, .6);
+      box-shadow: 0 3px 10px rgba(20, 20, 40, .14); padding: 4px;
+    }
+    .confronto-nome {
+      margin-top: .55rem;
+      font-weight: 600;
+      font-size: .82rem;
+      line-height: 1.2;
+      min-height: 2.15em;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .confronto-versus {
+      flex-shrink: 0;
+      width: 34px; height: 34px;
+      margin-top: 12px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .9rem;
+      color: var(--texto-suave);
+      background: rgba(255, 255, 255, .65);
+      border: 1px solid rgba(255, 255, 255, .55);
+      backdrop-filter: blur(6px);
+    }
+    .confronto-grande .confronto-escudo { width: 72px; height: 72px; }
+    .confronto-grande .confronto-time { width: 128px; }
+    [data-bs-theme="dark"] .confronto {
+      background: rgba(30, 37, 41, .55);
+      border-color: rgba(255, 255, 255, .08);
+    }
+    [data-bs-theme="dark"] .confronto::before { opacity: .45; }
+    [data-bs-theme="dark"] .confronto-escudo {
+      background: rgba(30, 37, 41, .85); border-color: rgba(255, 255, 255, .1);
+    }
+    [data-bs-theme="dark"] .confronto-versus {
+      background: rgba(30, 37, 41, .7); border-color: rgba(255, 255, 255, .1); color: #cfd6db;
+    }
+
     footer.app-footer {
       color: var(--texto-suave);
       font-size: .82rem;

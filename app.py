@@ -18,6 +18,7 @@ from db import (
     gerar_icones_pwa,
     get_conn,
     init_db,
+    salvar_cor_escudo,
     salvar_escudo_blob,
 )
 
@@ -44,7 +45,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -75,16 +76,26 @@ def master_obrigatorio(funcao):
     return envolvida
 
 
+@app.template_filter("hex_para_rgb")
+def hex_para_rgb(cor_hex):
+    """'#1f6feb' -> '31,111,235', pra usar em rgba(var(--x), alfa) no CSS."""
+    if not cor_hex:
+        return None
+    h = cor_hex.lstrip("#")
+    return ",".join(str(int(h[i:i + 2], 16)) for i in (0, 2, 4))
+
+
 @app.context_processor
 def injetar_contexto_global():
     conn = get_conn()
     usuario = usuario_logado()
-    row_escudo = conn.execute("SELECT escudo FROM times WHERE is_fixo = 1").fetchone()
+    row_escudo = conn.execute("SELECT escudo, escudo_cor FROM times WHERE is_fixo = 1").fetchone()
     conn.close()
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
+        "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "app_version": APP_VERSION,
     }
 
@@ -215,6 +226,7 @@ def salvar_escudo(arquivo, time_id, conn):
     caminho = ESCUDOS_DIR / nome_arquivo
     arquivo.save(caminho)
     salvar_escudo_blob(conn, time_id, caminho)
+    salvar_cor_escudo(conn, time_id, caminho)
     return nome_arquivo
 
 MESES_PT = [
@@ -236,7 +248,7 @@ def buscar_proximo_jogo():
     hoje = date.today().isoformat()
     jogo = conn.execute(
         """
-        SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo
+        SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
         FROM jogos JOIN times ON times.id = jogos.adversario_id
         WHERE jogos.data >= ? AND jogos.status != 'cancelado'
         ORDER BY jogos.data ASC
@@ -322,7 +334,7 @@ def calendario(ano, mes):
     for d in sabados:
         row = conn.execute(
             """
-            SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo
+            SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
             FROM jogos JOIN times ON times.id = jogos.adversario_id
             WHERE jogos.data = ?
             """,
@@ -548,7 +560,7 @@ def historico():
     conn = get_conn()
     jogos = conn.execute(
         """
-        SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo
+        SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
         FROM jogos JOIN times ON times.id = jogos.adversario_id
         WHERE jogos.data < ?
         ORDER BY jogos.data DESC

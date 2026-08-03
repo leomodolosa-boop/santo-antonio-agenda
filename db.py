@@ -273,6 +273,35 @@ def _restaurar_escudo_do_blob(conn, time_id, caminho):
     return False
 
 
+def cor_dominante_escudo(caminho):
+    """Cor média do escudo (ignorando pixels transparentes), usada como acento
+    visual do time nos cards de jogo. Retorna None se não conseguir ler a imagem."""
+    try:
+        img = Image.open(caminho).convert("RGBA")
+    except Exception:
+        return None
+    img.thumbnail((48, 48))
+    r = g = b = total = 0
+    for pr, pg, pb, pa in img.getdata():
+        if pa < 30:
+            continue
+        r += pr
+        g += pg
+        b += pb
+        total += 1
+    if not total:
+        return None
+    return "#{:02x}{:02x}{:02x}".format(r // total, g // total, b // total)
+
+
+def salvar_cor_escudo(conn, time_id, caminho):
+    cor = cor_dominante_escudo(caminho)
+    if cor:
+        conn.execute("UPDATE times SET escudo_cor = ? WHERE id = ?", (cor, time_id))
+        conn.commit()
+    return cor
+
+
 def init_db():
     conn = get_conn()
 
@@ -287,11 +316,13 @@ def init_db():
                 is_fixo INTEGER NOT NULL DEFAULT 0,
                 escudo TEXT,
                 escudo_dados BYTEA,
+                escudo_cor TEXT,
                 nome_campo TEXT,
                 endereco TEXT
             )
             """
         )
+        conn.execute("ALTER TABLE times ADD COLUMN IF NOT EXISTS escudo_cor TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS jogos (
@@ -367,6 +398,8 @@ def init_db():
             conn.execute("ALTER TABLE times ADD COLUMN nome_campo TEXT")
         if "endereco" not in colunas:
             conn.execute("ALTER TABLE times ADD COLUMN endereco TEXT")
+        if "escudo_cor" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN escudo_cor TEXT")
         conn.commit()
 
         colunas_jogos = {row["name"] for row in conn.execute("PRAGMA table_info(jogos)")}
@@ -397,7 +430,7 @@ def init_db():
 
     ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
 
-    time_fixo_row = conn.execute("SELECT id, escudo FROM times WHERE is_fixo = 1").fetchone()
+    time_fixo_row = conn.execute("SELECT id, escudo, escudo_cor FROM times WHERE is_fixo = 1").fetchone()
     if time_fixo_row:
         escudo_fixo_nome = time_fixo_row["escudo"]
         caminho_fixo = ESCUDOS_DIR / escudo_fixo_nome if escudo_fixo_nome else None
@@ -414,12 +447,15 @@ def init_db():
                 shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho_fixo)
         if caminho_fixo and caminho_fixo.exists():
             gerar_icones_pwa(caminho_fixo)
+            if not time_fixo_row["escudo_cor"]:
+                salvar_cor_escudo(conn, time_fixo_row["id"], caminho_fixo)
 
     todos_adversarios = conn.execute(
-        "SELECT id, nome, escudo FROM times WHERE is_fixo = 0 ORDER BY id"
+        "SELECT id, nome, escudo, escudo_cor FROM times WHERE is_fixo = 0 ORDER BY id"
     ).fetchall()
     for time_row in todos_adversarios:
         nome_arquivo = time_row["escudo"]
+        precisa_cor = not time_row["escudo_cor"]
         if nome_arquivo:
             caminho = ESCUDOS_DIR / nome_arquivo
             if not caminho.exists() and not _restaurar_escudo_do_blob(conn, time_row["id"], caminho):
@@ -431,6 +467,8 @@ def init_db():
             gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
             conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
             salvar_escudo_blob(conn, time_row["id"], caminho)
+        if precisa_cor and caminho.exists():
+            salvar_cor_escudo(conn, time_row["id"], caminho)
     conn.commit()
 
     ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times").fetchall()}

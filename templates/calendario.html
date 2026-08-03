@@ -32,8 +32,10 @@
           {% set mandante_casa = proximo_jogo.mandante != 'fora' %}
           {% set time_a_nome = time_fixo if mandante_casa else proximo_jogo.adversario_nome %}
           {% set time_a_escudo = escudo_fixo if mandante_casa else proximo_jogo.adversario_escudo %}
+          {% set time_a_cor = escudo_fixo_cor if mandante_casa else proximo_jogo.adversario_cor %}
           {% set time_b_nome = proximo_jogo.adversario_nome if mandante_casa else time_fixo %}
           {% set time_b_escudo = proximo_jogo.adversario_escudo if mandante_casa else escudo_fixo %}
+          {% set time_b_cor = proximo_jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
           <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
             <span class="text-uppercase small fw-semibold text-secondary">Próximo jogo</span>
             {% if dias_para_proximo_jogo == 0 %}
@@ -44,23 +46,24 @@
               <span class="badge rounded-pill badge-confirmado">Em {{ dias_para_proximo_jogo }} dias</span>
             {% endif %}
           </div>
-          <div class="d-flex align-items-center justify-content-center gap-4 my-2">
-            <div class="d-flex flex-column align-items-center text-center" style="width:120px">
+          <div class="confronto confronto-grande my-2"
+               style="{% if time_a_cor %}--cor-a-rgb: {{ time_a_cor|hex_para_rgb }};{% endif %} {% if time_b_cor %}--cor-b-rgb: {{ time_b_cor|hex_para_rgb }};{% endif %}">
+            <div class="confronto-time">
               {% if time_a_escudo %}
-                <img class="escudo-circulo resumo-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
+                <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
               {% else %}
-                <span class="escudo-placeholder-circulo resumo-escudo"><i class="bi bi-shield"></i></span>
+                <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
               {% endif %}
-              <small class="fw-semibold mt-2">{{ time_a_nome }}</small>
+              <small class="confronto-nome">{{ time_a_nome }}</small>
             </div>
-            <span class="fs-4 fw-bold text-secondary">x</span>
-            <div class="d-flex flex-column align-items-center text-center" style="width:120px">
+            <span class="confronto-versus">×</span>
+            <div class="confronto-time">
               {% if time_b_escudo %}
-                <img class="escudo-circulo resumo-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
+                <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
               {% else %}
-                <span class="escudo-placeholder-circulo resumo-escudo"><i class="bi bi-shield"></i></span>
+                <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
               {% endif %}
-              <small class="fw-semibold mt-2">{{ time_b_nome }}</small>
+              <small class="confronto-nome">{{ time_b_nome }}</small>
             </div>
           </div>
           <div class="text-center text-secondary small mt-2">
@@ -172,25 +175,28 @@
             {% set mandante_casa = jogo.mandante != 'fora' %}
             {% set time_a_nome = time_fixo if mandante_casa else jogo.adversario_nome %}
             {% set time_a_escudo = escudo_fixo if mandante_casa else jogo.adversario_escudo %}
+            {% set time_a_cor = escudo_fixo_cor if mandante_casa else jogo.adversario_cor %}
             {% set time_b_nome = jogo.adversario_nome if mandante_casa else time_fixo %}
             {% set time_b_escudo = jogo.adversario_escudo if mandante_casa else escudo_fixo %}
-            <div class="d-flex align-items-center justify-content-between my-3">
-              <div class="d-flex flex-column align-items-center text-center" style="width:100px">
+            {% set time_b_cor = jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
+            <div class="confronto my-3"
+                 style="{% if time_a_cor %}--cor-a-rgb: {{ time_a_cor|hex_para_rgb }};{% endif %} {% if time_b_cor %}--cor-b-rgb: {{ time_b_cor|hex_para_rgb }};{% endif %}">
+              <div class="confronto-time">
                 {% if time_a_escudo %}
-                  <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
+                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
                 {% else %}
-                  <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
+                  <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
                 {% endif %}
-                <small class="fw-semibold mt-1">{{ time_a_nome }}</small>
+                <small class="confronto-nome">{{ time_a_nome }}</small>
               </div>
-              <span class="text-secondary fw-bold">x</span>
-              <div class="d-flex flex-column align-items-center text-center" style="width:100px">
+              <span class="confronto-versus">×</span>
+              <div class="confronto-time">
                 {% if time_b_escudo %}
-                  <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
+                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
                 {% else %}
-                  <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
+                  <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
                 {% endif %}
-                <small class="fw-semibold mt-1">{{ time_b_nome }}</small>
+                <small class="confronto-nome">{{ time_b_nome }}</small>
               </div>
             </div>
             <p class="mb-1 text-secondary small">
