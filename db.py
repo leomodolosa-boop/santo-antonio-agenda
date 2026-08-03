@@ -37,6 +37,7 @@ TIMES_INICIAIS = [
     "Perim FC - Garrafão",
     "Bacia",
     "Amigos do Esporte",
+    "Atlético VNI",
 ]
 
 TIME_FIXO_CIDADE = "Venda Nova do Imigrante"
@@ -50,6 +51,29 @@ HORA_PADRAO = "15:00"
 # mandante: 'casa' (Santo Antônio manda) ou 'fora' (adversário manda).
 # status sempre nasce 'pendente'; INSERT OR IGNORE preserva edições já feitas pelo usuário.
 JOGOS_INICIAIS = [
+    ("2026-02-07", "Ipê", "casa", LOCAL_CASA, ""),
+    ("2026-02-14", "Taquarussu", "casa", LOCAL_CASA, ""),
+    ("2026-02-21", "Bar de Muniqu", "casa", LOCAL_CASA, ""),
+    ("2026-02-28", "São Bento", "casa", LOCAL_CASA, ""),
+    ("2026-03-07", "Alto Rio da Cobra", "casa", "", "Mandante a confirmar"),
+    ("2026-03-14", "Expocláudio", "casa", LOCAL_CASA, ""),
+    ("2026-03-21", "Pizzol", "casa", LOCAL_CASA, ""),
+    ("2026-03-28", "São Roque", "fora", "", ""),
+    ("2026-04-04", "PSV", "casa", LOCAL_CASA, ""),
+    ("2026-04-11", "Fazenda Estado", "fora", "", ""),
+    ("2026-04-25", "Corumbá", "fora", "", ""),
+    ("2026-05-02", "União FC", "casa", LOCAL_CASA, ""),
+    ("2026-05-09", "Tropa do Mantém", "casa", LOCAL_CASA, ""),
+    ("2026-05-16", "Campestre", "fora", "", ""),
+    ("2026-05-30", "Taquarussu", "fora", "", ""),
+    ("2026-06-06", "Braço do Sul", "fora", "", ""),
+    ("2026-06-13", "Mata Fria", "fora", "", ""),
+    ("2026-06-20", "Rancho Dantas", "casa", LOCAL_CASA, ""),
+    ("2026-06-27", "São João", "casa", LOCAL_CASA, ""),
+    ("2026-07-04", "São B Garrafão", "casa", LOCAL_CASA, ""),
+    ("2026-07-11", "Ipê", "fora", "", ""),
+    ("2026-07-18", "Atlético VNI", "casa", "", "Mandante a confirmar"),
+    ("2026-07-25", "São Bento", "fora", "", ""),
     ("2026-08-01", "São Roque", "casa", LOCAL_CASA, ""),
     ("2026-08-08", "Amigos do Esporte", "casa", LOCAL_CASA, ""),
     ("2026-08-15", "São José", "fora", "", ""),
