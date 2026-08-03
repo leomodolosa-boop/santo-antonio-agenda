@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Criar conta de administrador{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-shield-check me-1"></i> Primeiro acesso</h1>
+    <div class="subtitle">Crie sua conta de administrador (master) para gerenciar a agenda</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card">
+      <div class="card-body p-4">
+        <p class="text-secondary">
+          Essa é a primeira vez que o app é aberto. Crie aqui sua conta de administrador —
+          com ela você poderá agendar jogos, confirmar, cancelar e cadastrar times. Quem não
+          tiver login continua podendo ver o calendário normalmente.
+        </p>
+        {% if erro %}
+          <div class="alert alert-danger d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
+          </div>
+        {% endif %}
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Seu nome</label>
+            <input type="text" class="form-control" name="nome" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Usuário (login)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+              <input type="text" class="form-control" name="usuario" autocomplete="username" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Senha</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
+              <input type="password" class="form-control" name="senha" autocomplete="new-password" minlength="4" required>
+            </div>
+            <div class="form-text">Mínimo de 4 caracteres.</div>
+          </div>
+          <button type="submit" class="btn btn-brand w-100"><i class="bi bi-check-lg"></i> Criar conta de administrador</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

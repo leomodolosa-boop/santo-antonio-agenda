@@ -120,9 +120,11 @@
       <i class="bi bi-info-circle text-secondary me-1"></i>
       Próximo sábado sem jogo agendado: <strong>{{ proximo_sabado_livre_br }}</strong>
     </span>
-    <button type="button" class="btn btn-brand btn-sm" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=proximo_sabado_livre) }}')">
-      <i class="bi bi-plus-lg"></i> Agendar jogo
-    </button>
+    {% if eh_master %}
+      <button type="button" class="btn btn-brand btn-sm" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=proximo_sabado_livre) }}')">
+        <i class="bi bi-plus-lg"></i> Agendar jogo
+      </button>
+    {% endif %}
   </div>
 </div>
 
@@ -186,13 +188,10 @@
             {% endif %}
             {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
             <div class="d-flex gap-2 mt-2 flex-wrap">
-              <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_editar', jogo_id=jogo.id) }}')">
-                <i class="bi bi-pencil"></i> Editar
-              </button>
-              {% if jogo.status == 'pendente' %}
-                <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
-                  <button type="submit" class="btn btn-sm btn-brand"><i class="bi bi-check-lg"></i> Confirmar jogo</button>
-                </form>
+              {% if eh_master %}
+                <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_editar', jogo_id=jogo.id) }}')">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
               {% endif %}
               {% if jogo.status == 'confirmado' %}
                 <button type="button" class="btn btn-sm btn-brand"
@@ -207,23 +206,32 @@
                   <i class="bi bi-share"></i> Compartilhar
                 </button>
               {% endif %}
-              {% if jogo.status in ('pendente', 'confirmado') %}
-                <form method="post" action="{{ url_for('jogo_cancelar', jogo_id=jogo.id) }}"
-                  onsubmit="return confirm('O adversário desmarcou? Isso vai marcar o jogo como cancelado.')">
-                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar jogo</button>
-                </form>
-              {% endif %}
-              {% if jogo.status == 'cancelado' %}
-                <form method="post" action="{{ url_for('jogo_reabrir', jogo_id=jogo.id) }}">
-                  <button type="submit" class="btn btn-sm btn-outline-brand"><i class="bi bi-arrow-counterclockwise"></i> Reabrir jogo</button>
-                </form>
+              {% if eh_master %}
+                {% if jogo.status == 'pendente' %}
+                  <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
+                    <button type="submit" class="btn btn-sm btn-brand"><i class="bi bi-check-lg"></i> Confirmar jogo</button>
+                  </form>
+                {% endif %}
+                {% if jogo.status in ('pendente', 'confirmado') %}
+                  <form method="post" action="{{ url_for('jogo_cancelar', jogo_id=jogo.id) }}"
+                    onsubmit="return confirm('O adversário desmarcou? Isso vai marcar o jogo como cancelado.')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar jogo</button>
+                  </form>
+                {% endif %}
+                {% if jogo.status == 'cancelado' %}
+                  <form method="post" action="{{ url_for('jogo_reabrir', jogo_id=jogo.id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-brand"><i class="bi bi-arrow-counterclockwise"></i> Reabrir jogo</button>
+                  </form>
+                {% endif %}
               {% endif %}
             </div>
           {% else %}
             <p class="text-muted mb-3">Nenhum jogo agendado ainda.</p>
-            <button type="button" class="btn btn-sm btn-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=d.isoformat()) }}')">
-              <i class="bi bi-plus-lg"></i> Agendar jogo
-            </button>
+            {% if eh_master %}
+              <button type="button" class="btn btn-sm btn-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=d.isoformat()) }}')">
+                <i class="bi bi-plus-lg"></i> Agendar jogo
+              </button>
+            {% endif %}
           {% endif %}
         </div>
       </div>

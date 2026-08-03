@@ -12,6 +12,7 @@
 
 {% block content %}
 
+{% if eh_master %}
 <div class="card mb-4">
   <div class="card-body p-4">
     <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo time</h5>
@@ -29,6 +30,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="table-responsive">
@@ -63,6 +65,7 @@
         <td class="text-secondary">{{ t.endereco or '—' }}</td>
         <td class="text-secondary">{{ t.contato or '—' }}</td>
         <td class="text-end">
+          {% if eh_master %}
           <div class="d-flex gap-2 justify-content-end">
             <a href="{{ url_for('times_editar', time_id=t.id) }}" class="btn btn-sm btn-outline-brand">
               <i class="bi bi-pencil"></i> Editar
@@ -73,6 +76,7 @@
             </form>
             {% endif %}
           </div>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

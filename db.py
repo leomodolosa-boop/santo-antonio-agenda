@@ -126,6 +126,15 @@ def init_db():
             placar_adversario INTEGER,
             observacao TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT,
+            usuario TEXT UNIQUE NOT NULL,
+            senha_hash TEXT NOT NULL,
+            perfil TEXT NOT NULL DEFAULT 'visualizacao'
+        );
         """
     )
     conn.commit()

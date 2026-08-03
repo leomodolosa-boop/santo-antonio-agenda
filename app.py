@@ -1,20 +1,174 @@
 import calendar
+import functools
+import os
 import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from db import TIME_FIXO, gerar_icones_pwa, get_conn, init_db
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "chave-local-de-desenvolvimento-trocar-em-producao")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSOES_PERMITIDAS = {"png"}
 
 init_db()
+
+
+def usuario_logado():
+    if "usuario_id" not in session:
+        return None
+    conn = get_conn()
+    usuario = conn.execute(
+        "SELECT id, nome, usuario, perfil FROM usuarios WHERE id = ?", (session["usuario_id"],)
+    ).fetchone()
+    conn.close()
+    return usuario
+
+
+def master_obrigatorio(funcao):
+    @functools.wraps(funcao)
+    def envolvida(*args, **kwargs):
+        usuario = usuario_logado()
+        if not usuario or usuario["perfil"] != "master":
+            flash("Você precisa entrar como administrador para fazer isso.")
+            return redirect(url_for("login", proximo=request.full_path))
+        return funcao(*args, **kwargs)
+    return envolvida
+
+
+@app.context_processor
+def injetar_usuario():
+    conn = get_conn()
+    existe_usuario = conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone()
+    conn.close()
+    usuario = usuario_logado()
+    return {
+        "usuario_logado": usuario,
+        "eh_master": bool(usuario and usuario["perfil"] == "master"),
+        "existe_usuario_master": bool(existe_usuario),
+    }
+
+
+@app.route("/configurar-master", methods=["GET", "POST"])
+def configurar_master():
+    conn = get_conn()
+    if conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
+        conn.close()
+        return redirect(url_for("login"))
+
+    erro = None
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        usuario_login = request.form.get("usuario", "").strip().lower()
+        senha = request.form.get("senha", "")
+        if not nome or not usuario_login or not senha:
+            erro = "Preencha todos os campos."
+        elif len(senha) < 4:
+            erro = "A senha precisa ter pelo menos 4 caracteres."
+        else:
+            conn.execute(
+                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, 'master')",
+                (nome, usuario_login, generate_password_hash(senha)),
+            )
+            conn.commit()
+            usuario_criado = conn.execute(
+                "SELECT id FROM usuarios WHERE usuario = ?", (usuario_login,)
+            ).fetchone()
+            conn.close()
+            session.clear()
+            session.permanent = True
+            session["usuario_id"] = usuario_criado["id"]
+            return redirect(url_for("index"))
+
+    conn.close()
+    return render_template("configurar_master.html", erro=erro)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    conn = get_conn()
+    if not conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
+        conn.close()
+        return redirect(url_for("configurar_master"))
+
+    erro = None
+    if request.method == "POST":
+        usuario_login = request.form.get("usuario", "").strip().lower()
+        senha = request.form.get("senha", "")
+        usuario_row = conn.execute(
+            "SELECT * FROM usuarios WHERE usuario = ?", (usuario_login,)
+        ).fetchone()
+        if usuario_row and check_password_hash(usuario_row["senha_hash"], senha):
+            session.clear()
+            session.permanent = True
+            session["usuario_id"] = usuario_row["id"]
+            conn.close()
+            destino = request.form.get("proximo") or url_for("index")
+            return redirect(destino)
+        erro = "Usuário ou senha inválidos."
+
+    conn.close()
+    return render_template("login.html", erro=erro, proximo=request.args.get("proximo", ""))
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+
+@app.route("/usuarios", methods=["GET", "POST"])
+@master_obrigatorio
+def usuarios():
+    conn = get_conn()
+    erro = None
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        email = request.form.get("email", "").strip()
+        usuario_login = request.form.get("usuario", "").strip().lower()
+        senha = request.form.get("senha", "")
+        perfil = request.form.get("perfil", "visualizacao")
+        if perfil not in ("master", "visualizacao"):
+            perfil = "visualizacao"
+
+        if not nome or not usuario_login or not senha:
+            erro = "Preencha nome, usuário e senha."
+        elif len(senha) < 4:
+            erro = "A senha precisa ter pelo menos 4 caracteres."
+        else:
+            try:
+                conn.execute(
+                    "INSERT INTO usuarios (nome, email, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?, ?)",
+                    (nome, email, usuario_login, generate_password_hash(senha), perfil),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                erro = "Já existe um usuário com esse login."
+
+    lista = conn.execute("SELECT * FROM usuarios ORDER BY perfil DESC, nome").fetchall()
+    conn.close()
+    return render_template("usuarios.html", usuarios=lista, erro=erro)
+
+
+@app.route("/usuarios/<int:usuario_id>/excluir", methods=["POST"])
+@master_obrigatorio
+def usuarios_excluir(usuario_id):
+    if usuario_id == session.get("usuario_id"):
+        flash("Você não pode excluir seu próprio usuário enquanto estiver logado com ele.")
+        return redirect(url_for("usuarios"))
+    conn = get_conn()
+    conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("usuarios"))
 
 
 def salvar_escudo(arquivo, time_id):
@@ -177,6 +331,7 @@ def calendario(ano, mes):
 
 
 @app.route("/jogo/novo", methods=["GET", "POST"])
+@master_obrigatorio
 def jogo_novo():
     conn = get_conn()
     data_str = request.values.get("data") or proximo_sabado_sem_jogo().isoformat()
@@ -214,6 +369,7 @@ def jogo_novo():
 
 
 @app.route("/jogo/<int:jogo_id>/editar", methods=["GET", "POST"])
+@master_obrigatorio
 def jogo_editar(jogo_id):
     conn = get_conn()
 
@@ -293,6 +449,7 @@ def jogo_editar(jogo_id):
 
 
 @app.route("/jogo/<int:jogo_id>/confirmar", methods=["POST"])
+@master_obrigatorio
 def jogo_confirmar(jogo_id):
     conn = get_conn()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
@@ -304,6 +461,7 @@ def jogo_confirmar(jogo_id):
 
 
 @app.route("/jogo/<int:jogo_id>/cancelar", methods=["POST"])
+@master_obrigatorio
 def jogo_cancelar(jogo_id):
     conn = get_conn()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
@@ -315,6 +473,7 @@ def jogo_cancelar(jogo_id):
 
 
 @app.route("/jogo/<int:jogo_id>/reabrir", methods=["POST"])
+@master_obrigatorio
 def jogo_reabrir(jogo_id):
     conn = get_conn()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
@@ -345,6 +504,11 @@ def historico():
 def times():
     conn = get_conn()
     if request.method == "POST":
+        usuario = usuario_logado()
+        if not usuario or usuario["perfil"] != "master":
+            conn.close()
+            flash("Você precisa entrar como administrador para fazer isso.")
+            return redirect(url_for("login", proximo=request.full_path))
         nome = request.form.get("nome", "").strip()
         cidade = request.form.get("cidade", "").strip()
         contato = request.form.get("contato", "").strip()
@@ -372,6 +536,7 @@ def times():
 
 
 @app.route("/times/<int:time_id>/editar", methods=["GET", "POST"])
+@master_obrigatorio
 def times_editar(time_id):
     conn = get_conn()
 
@@ -404,6 +569,7 @@ def times_editar(time_id):
 
 
 @app.route("/times/<int:time_id>/excluir", methods=["POST"])
+@master_obrigatorio
 def times_excluir(time_id):
     conn = get_conn()
     time_row = conn.execute("SELECT is_fixo FROM times WHERE id = ?", (time_id,)).fetchone()

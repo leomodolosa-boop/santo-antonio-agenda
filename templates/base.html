@@ -88,6 +88,12 @@
       padding: .5rem .9rem !important;
       border-radius: 8px;
       transition: background .15s ease, color .15s ease;
+      background: transparent;
+    }
+    button.nav-link-custom {
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.5;
     }
     .nav-link-custom:hover { background: rgba(255,255,255,.12); color: #fff !important; }
     .nav-link-custom.active { background: rgba(255,255,255,.18); color: #fff !important; }
@@ -280,6 +286,22 @@
           <a class="nav-link-custom {{ 'active' if request.endpoint in ('times','times_editar') }}" href="{{ url_for('times') }}">
             <i class="bi bi-shield"></i> Times
           </a>
+          {% if eh_master %}
+            <a class="nav-link-custom {{ 'active' if request.endpoint == 'usuarios' }}" href="{{ url_for('usuarios') }}">
+              <i class="bi bi-people"></i> Usuários
+            </a>
+          {% endif %}
+          {% if usuario_logado %}
+            <form method="post" action="{{ url_for('logout') }}" class="d-inline">
+              <button type="submit" class="nav-link-custom border-0">
+                <i class="bi bi-box-arrow-right"></i> Sair ({{ usuario_logado.nome }})
+              </button>
+            </form>
+          {% else %}
+            <a class="nav-link-custom {{ 'active' if request.endpoint == 'login' }}" href="{{ url_for('login') }}">
+              <i class="bi bi-box-arrow-in-right"></i> Entrar
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-shield-lock me-1"></i> Entrar</h1>
+    <div class="subtitle">Acesso de administrador — agendar, editar e gerenciar times</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body p-4">
+        {% with mensagens = get_flashed_messages() %}
+          {% if mensagens %}
+            <div class="alert alert-warning">{{ mensagens[0] }}</div>
+          {% endif %}
+        {% endwith %}
+        {% if erro %}
+          <div class="alert alert-danger d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
+          </div>
+        {% endif %}
+        <form method="post">
+          <input type="hidden" name="proximo" value="{{ proximo }}">
+          <div class="mb-3">
+            <label class="form-label">Usuário</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+              <input type="text" class="form-control" name="usuario" autocomplete="username" required autofocus>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Senha</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
+              <input type="password" class="form-control" name="senha" autocomplete="current-password" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-brand w-100"><i class="bi bi-box-arrow-in-right"></i> Entrar</button>
+        </form>
+        <div class="text-center mt-3">
+          <a href="{{ url_for('index') }}" class="text-secondary small"><i class="bi bi-arrow-left"></i> Voltar para o calendário</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
