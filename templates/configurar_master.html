@@ -21,6 +21,13 @@
           com ela você poderá agendar jogos, confirmar, cancelar e cadastrar times. Quem não
           tiver login continua podendo ver o calendário normalmente.
         </p>
+        <div class="alert alert-warning small d-flex align-items-start gap-2">
+          <i class="bi bi-shield-lock fs-5"></i>
+          <span>
+            Essa tela pede um <strong>código de configuração</strong> pra garantir que só você
+            consiga criar a conta de administrador, mesmo que alguém mais acesse o link antes de você.
+          </span>
+        </div>
         {% if erro %}
           <div class="alert alert-danger d-flex align-items-center gap-2">
             <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
@@ -28,8 +35,15 @@
         {% endif %}
         <form method="post">
           <div class="mb-3">
+            <label class="form-label">Código de configuração</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-shield-lock"></i></span>
+              <input type="text" class="form-control" name="codigo" required>
+            </div>
+          </div>
+          <div class="mb-3">
             <label class="form-label">Seu nome</label>
-            <input type="text" class="form-control" name="nome" required autofocus>
+            <input type="text" class="form-control" name="nome" required>
           </div>
           <div class="mb-3">
             <label class="form-label">Usuário (login)</label>

@@ -15,6 +15,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "chave-local-de-desenvolvimento-trocar-em-producao")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 
+# Código secreto exigido para criar a conta master pela primeira vez.
+# Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
+SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
+
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSOES_PERMITIDAS = {"png"}
@@ -69,8 +73,11 @@ def configurar_master():
         nome = request.form.get("nome", "").strip()
         usuario_login = request.form.get("usuario", "").strip().lower()
         senha = request.form.get("senha", "")
-        if not nome or not usuario_login or not senha:
+        codigo = request.form.get("codigo", "").strip()
+        if not nome or not usuario_login or not senha or not codigo:
             erro = "Preencha todos os campos."
+        elif codigo != SETUP_TOKEN:
+            erro = "Código de configuração incorreto."
         elif len(senha) < 4:
             erro = "A senha precisa ter pelo menos 4 caracteres."
         else:
