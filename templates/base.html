@@ -310,6 +310,7 @@
           {% endif %}
           {% if usuario_logado %}
             <form method="post" action="{{ url_for('logout') }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="nav-link-custom border-0">
                 <i class="bi bi-box-arrow-right"></i> Sair ({{ usuario_logado.nome }})
               </button>
@@ -327,6 +328,15 @@
   {% block hero %}{% endblock %}
 
   <div class="container content-shell">
+    {% if request.endpoint not in ('login', 'configurar_master') %}
+      {% with mensagens = get_flashed_messages() %}
+        {% if mensagens %}
+          <div class="alert alert-warning d-flex align-items-center gap-2 mt-3">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ mensagens[0] }}
+          </div>
+        {% endif %}
+      {% endwith %}
+    {% endif %}
     {% block content %}{% endblock %}
   </div>
 

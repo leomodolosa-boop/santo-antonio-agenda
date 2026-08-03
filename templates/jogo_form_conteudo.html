@@ -7,6 +7,7 @@
     {% endif %}
     <form method="post" id="form-jogo" action="{{ url_for('jogo_editar', jogo_id=jogo.id) if jogo else url_for('jogo_novo') }}">
       <input type="hidden" name="modal" value="1">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% if jogo %}
         <div class="mb-4">
           <label class="form-label">Data (sábado)</label>
@@ -53,7 +54,7 @@
           <div id="lista-times-flutuante" class="time-picker-dropdown">
             {% for t in adversarios %}
               <div class="time-picker-item" data-nome="{{ t.nome|lower }}"
-                   onclick="agendaSelecionarTime('{{ t.id }}', '{{ t.nome|e }}', '{{ url_for('static', filename='escudos/' ~ t.escudo) if t.escudo else '' }}')">
+                   onclick='agendaSelecionarTime({{ t.id }}, {{ t.nome|tojson }}, {{ (url_for("static", filename="escudos/" ~ t.escudo) if t.escudo else "")|tojson }})'>
                 {% if t.escudo %}
                   <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="">
                 {% else %}

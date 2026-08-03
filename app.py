@@ -6,7 +6,8 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask_wtf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -29,6 +30,7 @@ def validar_senha_forte(senha):
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "chave-local-de-desenvolvimento-trocar-em-producao")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+csrf = CSRFProtect(app)
 
 # Código secreto exigido para criar a conta master pela primeira vez.
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
@@ -64,15 +66,15 @@ def master_obrigatorio(funcao):
 
 
 @app.context_processor
-def injetar_usuario():
+def injetar_contexto_global():
     conn = get_conn()
-    existe_usuario = conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone()
-    conn.close()
     usuario = usuario_logado()
+    row_escudo = conn.execute("SELECT escudo FROM times WHERE is_fixo = 1").fetchone()
+    conn.close()
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
-        "existe_usuario_master": bool(existe_usuario),
+        "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
     }
 
 
@@ -201,14 +203,6 @@ def salvar_escudo(arquivo, time_id):
     nome_arquivo = secure_filename(f"time_{time_id}.png")
     arquivo.save(ESCUDOS_DIR / nome_arquivo)
     return nome_arquivo
-
-
-@app.context_processor
-def injetar_escudo_fixo():
-    conn = get_conn()
-    row = conn.execute("SELECT escudo FROM times WHERE is_fixo = 1").fetchone()
-    conn.close()
-    return {"escudo_fixo": row["escudo"] if row else None}
 
 MESES_PT = [
     "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -364,22 +358,49 @@ def jogo_novo():
     data_str = request.values.get("data") or proximo_sabado_sem_jogo().isoformat()
 
     if request.method == "POST":
-        adversario_id = request.form["adversario_id"]
+        adversario_id = request.form.get("adversario_id")
         mandante = request.form.get("mandante", "casa")
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
         observacao = request.form.get("observacao", "").strip()
-        conn.execute(
-            """
-            INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
-            VALUES (?, ?, ?, ?, ?, 'pendente', ?)
-            """,
-            (request.form["data"], hora, adversario_id, mandante, local, observacao),
-        )
-        conn.commit()
-        d = date.fromisoformat(request.form["data"])
+        nova_data = request.form.get("data", "")
+
+        erro = None
+        if not adversario_id:
+            erro = "Selecione o adversário."
+        elif not nova_data or date.fromisoformat(nova_data).weekday() != 5:
+            erro = "A data precisa ser um sábado."
+        else:
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+                    VALUES (?, ?, ?, ?, ?, 'pendente', ?)
+                    """,
+                    (nova_data, hora, adversario_id, mandante, local, observacao),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                erro = "Já existe um jogo agendado para essa data."
+
+        if not erro:
+            d = date.fromisoformat(nova_data)
+            conn.close()
+            return redirect(url_for("calendario", ano=d.year, mes=d.month))
+
+        adversarios = conn.execute(
+            "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
+        ).fetchall()
         conn.close()
-        return redirect(url_for("calendario", ano=d.year, mes=d.month))
+        template = "jogo_form_conteudo.html" if request.form.get("modal") == "1" else "jogo_form.html"
+        return render_template(
+            template,
+            jogo=None,
+            data_str=nova_data or data_str,
+            adversarios=adversarios,
+            time_fixo=TIME_FIXO,
+            erro=erro,
+        )
 
     adversarios = conn.execute(
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
@@ -400,12 +421,16 @@ def jogo_novo():
 def jogo_editar(jogo_id):
     conn = get_conn()
 
+    jogo_existente = conn.execute("SELECT * FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
+    if not jogo_existente:
+        conn.close()
+        abort(404)
+
     if request.method == "POST":
         if "excluir" in request.form:
-            jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
             conn.execute("DELETE FROM jogos WHERE id = ?", (jogo_id,))
             conn.commit()
-            d = date.fromisoformat(jogo["data"])
+            d = date.fromisoformat(jogo_existente["data"])
             conn.close()
             return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
@@ -460,7 +485,6 @@ def jogo_editar(jogo_id):
         conn.close()
         return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
-    jogo = conn.execute("SELECT * FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
     adversarios = conn.execute(
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
@@ -468,47 +492,42 @@ def jogo_editar(jogo_id):
     template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
         template,
-        jogo=jogo,
-        data_str=jogo["data"],
+        jogo=jogo_existente,
+        data_str=jogo_existente["data"],
         adversarios=adversarios,
         time_fixo=TIME_FIXO,
     )
 
 
-@app.route("/jogo/<int:jogo_id>/confirmar", methods=["POST"])
-@master_obrigatorio
-def jogo_confirmar(jogo_id):
+def _mudar_status_jogo(jogo_id, novo_status):
     conn = get_conn()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
-    conn.execute("UPDATE jogos SET status = 'confirmado' WHERE id = ?", (jogo_id,))
+    if not jogo:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE jogos SET status = ? WHERE id = ?", (novo_status, jogo_id))
     conn.commit()
     conn.close()
     d = date.fromisoformat(jogo["data"])
     return redirect(url_for("calendario", ano=d.year, mes=d.month))
+
+
+@app.route("/jogo/<int:jogo_id>/confirmar", methods=["POST"])
+@master_obrigatorio
+def jogo_confirmar(jogo_id):
+    return _mudar_status_jogo(jogo_id, "confirmado")
 
 
 @app.route("/jogo/<int:jogo_id>/cancelar", methods=["POST"])
 @master_obrigatorio
 def jogo_cancelar(jogo_id):
-    conn = get_conn()
-    jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
-    conn.execute("UPDATE jogos SET status = 'cancelado' WHERE id = ?", (jogo_id,))
-    conn.commit()
-    conn.close()
-    d = date.fromisoformat(jogo["data"])
-    return redirect(url_for("calendario", ano=d.year, mes=d.month))
+    return _mudar_status_jogo(jogo_id, "cancelado")
 
 
 @app.route("/jogo/<int:jogo_id>/reabrir", methods=["POST"])
 @master_obrigatorio
 def jogo_reabrir(jogo_id):
-    conn = get_conn()
-    jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
-    conn.execute("UPDATE jogos SET status = 'pendente' WHERE id = ?", (jogo_id,))
-    conn.commit()
-    conn.close()
-    d = date.fromisoformat(jogo["data"])
-    return redirect(url_for("calendario", ano=d.year, mes=d.month))
+    return _mudar_status_jogo(jogo_id, "pendente")
 
 
 @app.route("/historico")
@@ -567,6 +586,10 @@ def times():
 def times_editar(time_id):
     conn = get_conn()
 
+    if not conn.execute("SELECT 1 FROM times WHERE id = ?", (time_id,)).fetchone():
+        conn.close()
+        abort(404)
+
     if request.method == "POST":
         cidade = request.form.get("cidade", "").strip()
         contato = request.form.get("contato", "").strip()
@@ -599,12 +622,20 @@ def times_editar(time_id):
 @master_obrigatorio
 def times_excluir(time_id):
     conn = get_conn()
-    time_row = conn.execute("SELECT is_fixo FROM times WHERE id = ?", (time_id,)).fetchone()
-    if time_row and not time_row["is_fixo"]:
+    time_row = conn.execute("SELECT is_fixo, nome FROM times WHERE id = ?", (time_id,)).fetchone()
+    if not time_row:
+        conn.close()
+        abort(404)
+
+    if time_row["is_fixo"]:
+        flash("Não é possível excluir o time fixo.")
+    else:
         em_uso = conn.execute(
             "SELECT 1 FROM jogos WHERE adversario_id = ? LIMIT 1", (time_id,)
         ).fetchone()
-        if not em_uso:
+        if em_uso:
+            flash(f'"{time_row["nome"]}" tem jogos cadastrados e não pode ser excluído.')
+        else:
             conn.execute("DELETE FROM times WHERE id = ?", (time_id,))
             conn.commit()
     conn.close()

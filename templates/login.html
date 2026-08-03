@@ -27,6 +27,7 @@
           </div>
         {% endif %}
         <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="proximo" value="{{ proximo }}">
           <div class="mb-3">
             <label class="form-label">Usuário</label>

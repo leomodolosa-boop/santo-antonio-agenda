@@ -26,6 +26,7 @@
       </div>
     {% endif %}
     <form method="post" class="row g-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="col-md-4">
         <input type="text" class="form-control" name="nome" placeholder="Nome" required>
       </div>
@@ -67,6 +68,7 @@
             {% if u.id != usuario_logado.id %}
               <form method="post" action="{{ url_for('usuarios_excluir', usuario_id=u.id) }}"
                 onsubmit="return confirm('Excluir o usuário {{ u.nome }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
               </form>
             {% else %}
