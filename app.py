@@ -36,6 +36,8 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
+APP_VERSION = "1.1.0"
+
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSOES_PERMITIDAS = {"png"}
@@ -75,6 +77,7 @@ def injetar_contexto_global():
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
+        "app_version": APP_VERSION,
     }
 
 

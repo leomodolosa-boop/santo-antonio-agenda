@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agenda-sao-v1';
+const CACHE_NAME = 'agenda-sao-v2';
 const ASSETS_ESTATICOS = [
   '/static/manifest.json',
   '/static/icons/icon-192.png',
