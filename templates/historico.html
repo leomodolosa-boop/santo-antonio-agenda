@@ -41,7 +41,7 @@
       {% set time_b_nome = j.adversario_nome if mandante_casa else time_fixo %}
       {% set time_b_escudo = j.adversario_escudo if mandante_casa else escudo_fixo %}
       <tr>
-        <td class="text-secondary">{{ j.data }}</td>
+        <td class="text-secondary">{{ j.data[8:10] }}/{{ j.data[5:7] }}/{{ j.data[0:4] }}</td>
         <td>
           <div class="d-flex align-items-center gap-2">
             {% if time_a_escudo %}

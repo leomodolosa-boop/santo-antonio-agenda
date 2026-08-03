@@ -94,6 +94,8 @@ def calendario(ano, mes):
     next_mes = mes + 1 if mes < 12 else 1
     next_ano = ano if mes < 12 else ano + 1
 
+    proximo_livre = proximo_sabado_sem_jogo()
+
     return render_template(
         "calendario.html",
         ano=ano,
@@ -107,7 +109,8 @@ def calendario(ano, mes):
         next_mes=next_mes,
         hoje=date.today().isoformat(),
         time_fixo=TIME_FIXO,
-        proximo_sabado_livre=proximo_sabado_sem_jogo().isoformat(),
+        proximo_sabado_livre=proximo_livre.isoformat(),
+        proximo_sabado_livre_br=proximo_livre.strftime("%d/%m/%Y"),
     )
 
 
