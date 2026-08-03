@@ -37,6 +37,7 @@ TIME_FIXO_CAMPO = "Campo do Santo Antônio do Oriente"
 TIME_FIXO_ENDERECO = "Comunidade Santo Antônio do Oriente, s/n"
 
 LOCAL_CASA = "Santo Antônio do Oriente - Venda Nova do Imigrante"
+HORA_PADRAO = "15:00"
 
 # (data, nome_adversario, mandante, local, observacao) — agenda pré-definida da temporada 2026.
 # mandante: 'casa' (Santo Antônio manda) ou 'fora' (adversário manda).
@@ -139,11 +140,14 @@ def init_db():
             continue
         conn.execute(
             """
-            INSERT OR IGNORE INTO jogos (data, adversario_id, mandante, local, status, observacao)
-            VALUES (?, ?, ?, ?, 'pendente', ?)
+            INSERT OR IGNORE INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+            VALUES (?, ?, ?, ?, ?, 'pendente', ?)
             """,
-            (data, adversario_id, mandante, local, observacao),
+            (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
         )
+    conn.commit()
+
+    conn.execute("UPDATE jogos SET hora = ? WHERE hora IS NULL OR hora = ''", (HORA_PADRAO,))
     conn.commit()
     conn.close()
 
