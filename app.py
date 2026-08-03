@@ -252,7 +252,10 @@ def calcular_aproveitamento():
     conn.close()
 
     vitorias = empates = derrotas = 0
+    gols_pro = gols_contra = 0
     for linha in linhas:
+        gols_pro += linha["placar_santo"]
+        gols_contra += linha["placar_adversario"]
         if linha["placar_santo"] > linha["placar_adversario"]:
             vitorias += 1
         elif linha["placar_santo"] == linha["placar_adversario"]:
@@ -269,6 +272,9 @@ def calcular_aproveitamento():
         "empates": empates,
         "derrotas": derrotas,
         "aproveitamento": aproveitamento,
+        "gols_pro": gols_pro,
+        "gols_contra": gols_contra,
+        "saldo_gols": gols_pro - gols_contra,
     }
 
 

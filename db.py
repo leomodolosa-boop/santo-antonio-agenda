@@ -1,8 +1,9 @@
+import math
 import shutil
 import sqlite3
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "agenda_futebol.db"
@@ -116,6 +117,72 @@ def gerar_icones_pwa(caminho_escudo):
         fundo.convert("RGB").save(ICONS_DIR / f"icon-{tamanho}.png")
 
 
+PALETA_ESCUDOS = [
+    (31, 111, 235), (211, 36, 47), (130, 80, 223), (191, 135, 0),
+    (9, 105, 218), (17, 99, 41), (138, 99, 210), (149, 56, 0),
+    (5, 80, 174), (164, 14, 38), (63, 143, 80), (191, 96, 9),
+]
+CONECTORES_NOME = {"de", "do", "da", "e", "fc"}
+
+
+def _fonte_escudo(tamanho):
+    try:
+        return ImageFont.load_default(size=tamanho)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def _iniciais_time(nome):
+    palavras = [p for p in nome.replace("-", " ").split() if p.lower() not in CONECTORES_NOME]
+    if not palavras:
+        palavras = nome.split()
+    if len(palavras) == 1:
+        return palavras[0][:2].upper()
+    return (palavras[0][0] + palavras[1][0]).upper()
+
+
+def gerar_escudo_padrao(nome, indice, caminho_saida):
+    """Gera um escudo simples e provisório (formato e cor variam por time),
+    só pra não ficar sem imagem nenhuma até o usuário subir o escudo real."""
+    tamanho = 400
+    cor = PALETA_ESCUDOS[indice % len(PALETA_ESCUDOS)]
+    estilo = indice % 4
+    img = Image.new("RGBA", (tamanho, tamanho), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    cx = cy = tamanho / 2
+    r = tamanho * 0.42
+    branco = (255, 255, 255, 255)
+    preenchimento = cor + (255,)
+
+    if estilo == 0:  # círculo
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=preenchimento, outline=branco, width=8)
+    elif estilo == 1:  # escudo
+        pontos = [
+            (cx - r, cy - r * 0.75), (cx + r, cy - r * 0.75),
+            (cx + r, cy + r * 0.25), (cx, cy + r * 1.1), (cx - r, cy + r * 0.25),
+        ]
+        d.polygon(pontos, fill=preenchimento)
+        d.line(pontos + [pontos[0]], fill=branco, width=8, joint="curve")
+    elif estilo == 2:  # hexágono
+        pontos = [
+            (cx + r * math.cos(math.radians(60 * i - 30)), cy + r * math.sin(math.radians(60 * i - 30)))
+            for i in range(6)
+        ]
+        d.polygon(pontos, fill=preenchimento)
+        d.line(pontos + [pontos[0]], fill=branco, width=8, joint="curve")
+    else:  # quadrado arredondado
+        d.rounded_rectangle([cx - r, cy - r, cx + r, cy + r], radius=r * 0.35, fill=preenchimento, outline=branco, width=8)
+
+    iniciais = _iniciais_time(nome)
+    fonte = _fonte_escudo(int(tamanho * 0.32))
+    caixa = d.textbbox((0, 0), iniciais, font=fonte)
+    largura = caixa[2] - caixa[0]
+    altura = caixa[3] - caixa[1]
+    d.text((cx - largura / 2 - caixa[0], cy - altura / 2 - caixa[1]), iniciais, font=fonte, fill=branco)
+
+    img.save(caminho_saida)
+
+
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -206,6 +273,16 @@ def init_db():
         conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_fixo_row["id"]))
         conn.commit()
         gerar_icones_pwa(ESCUDOS_DIR / nome_arquivo)
+
+    ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
+    sem_escudo = conn.execute(
+        "SELECT id, nome FROM times WHERE is_fixo = 0 AND escudo IS NULL ORDER BY id"
+    ).fetchall()
+    for time_row in sem_escudo:
+        nome_arquivo = f"time_{time_row['id']}.png"
+        gerar_escudo_padrao(time_row["nome"], time_row["id"], ESCUDOS_DIR / nome_arquivo)
+        conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
+    conn.commit()
 
     ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times")}
     for data, nome_adversario, mandante, local, observacao in JOGOS_INICIAIS:

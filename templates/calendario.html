@@ -102,8 +102,24 @@
           <span>Aproveitamento</span>
           <span class="fw-semibold">{{ stats.aproveitamento }}%</span>
         </div>
-        <div class="progress" style="height:8px">
+        <div class="progress mb-3" style="height:8px">
           <div class="progress-bar aproveitamento-bar" role="progressbar" style="width: {{ stats.aproveitamento }}%;"></div>
+        </div>
+        <div class="row text-center g-2">
+          <div class="col-4">
+            <div class="fs-5 fw-bold">{{ stats.gols_pro }}</div>
+            <div class="small text-secondary">Gols pró</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-5 fw-bold">{{ stats.gols_contra }}</div>
+            <div class="small text-secondary">Gols contra</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-5 fw-bold" style="color: {{ 'var(--sao-verde)' if stats.saldo_gols > 0 else ('var(--sao-grena)' if stats.saldo_gols < 0 else 'inherit') }}">
+              {{ '+' if stats.saldo_gols > 0 else '' }}{{ stats.saldo_gols }}
+            </div>
+            <div class="small text-secondary">Saldo</div>
+          </div>
         </div>
         <div class="text-secondary small mt-3">
           <i class="bi bi-clipboard-data"></i>
