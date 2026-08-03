@@ -49,6 +49,54 @@ def sabados_do_mes(ano, mes):
     ]
 
 
+def buscar_proximo_jogo():
+    conn = get_conn()
+    hoje = date.today().isoformat()
+    jogo = conn.execute(
+        """
+        SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo
+        FROM jogos JOIN times ON times.id = jogos.adversario_id
+        WHERE jogos.data >= ? AND jogos.status != 'cancelado'
+        ORDER BY jogos.data ASC
+        LIMIT 1
+        """,
+        (hoje,),
+    ).fetchone()
+    conn.close()
+    return jogo
+
+
+def calcular_aproveitamento():
+    conn = get_conn()
+    linhas = conn.execute(
+        """
+        SELECT placar_santo, placar_adversario FROM jogos
+        WHERE placar_santo IS NOT NULL AND placar_adversario IS NOT NULL
+        """
+    ).fetchall()
+    conn.close()
+
+    vitorias = empates = derrotas = 0
+    for linha in linhas:
+        if linha["placar_santo"] > linha["placar_adversario"]:
+            vitorias += 1
+        elif linha["placar_santo"] == linha["placar_adversario"]:
+            empates += 1
+        else:
+            derrotas += 1
+
+    jogos = vitorias + empates + derrotas
+    pontos = vitorias * 3 + empates
+    aproveitamento = round((pontos / (jogos * 3)) * 100) if jogos else 0
+    return {
+        "jogos": jogos,
+        "vitorias": vitorias,
+        "empates": empates,
+        "derrotas": derrotas,
+        "aproveitamento": aproveitamento,
+    }
+
+
 def proximo_sabado_sem_jogo():
     conn = get_conn()
     hoje = date.today()
@@ -95,6 +143,10 @@ def calendario(ano, mes):
     next_ano = ano if mes < 12 else ano + 1
 
     proximo_livre = proximo_sabado_sem_jogo()
+    proximo_jogo = buscar_proximo_jogo()
+    dias_para_proximo_jogo = None
+    if proximo_jogo:
+        dias_para_proximo_jogo = (date.fromisoformat(proximo_jogo["data"]) - date.today()).days
 
     return render_template(
         "calendario.html",
@@ -111,6 +163,9 @@ def calendario(ano, mes):
         time_fixo=TIME_FIXO,
         proximo_sabado_livre=proximo_livre.isoformat(),
         proximo_sabado_livre_br=proximo_livre.strftime("%d/%m/%Y"),
+        proximo_jogo=proximo_jogo,
+        dias_para_proximo_jogo=dias_para_proximo_jogo,
+        stats=calcular_aproveitamento(),
     )
 
 
