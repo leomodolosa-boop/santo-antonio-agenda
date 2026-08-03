@@ -56,9 +56,12 @@
             <label class="form-label">Senha</label>
             <div class="input-group">
               <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
-              <input type="password" class="form-control" name="senha" autocomplete="new-password" minlength="4" required>
+              <input type="password" class="form-control" name="senha" autocomplete="new-password"
+                     minlength="8" required
+                     pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+                     title="Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.">
             </div>
-            <div class="form-text">Mínimo de 4 caracteres.</div>
+            <div class="form-text">Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo (ex: @, #, !).</div>
           </div>
           <button type="submit" class="btn btn-brand w-100"><i class="bi bi-check-lg"></i> Criar conta de administrador</button>
         </form>

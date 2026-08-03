@@ -1,6 +1,7 @@
 import calendar
 import functools
 import os
+import re
 import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
@@ -10,6 +11,20 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from db import TIME_FIXO, gerar_icones_pwa, get_conn, init_db
+
+
+def validar_senha_forte(senha):
+    if len(senha) < 8:
+        return "A senha precisa ter pelo menos 8 caracteres."
+    if not re.search(r"[A-Z]", senha):
+        return "A senha precisa ter pelo menos uma letra maiúscula."
+    if not re.search(r"[a-z]", senha):
+        return "A senha precisa ter pelo menos uma letra minúscula."
+    if not re.search(r"[0-9]", senha):
+        return "A senha precisa ter pelo menos um número."
+    if not re.search(r"[^A-Za-z0-9]", senha):
+        return "A senha precisa ter pelo menos um símbolo (ex: @, #, !, %)."
+    return None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "chave-local-de-desenvolvimento-trocar-em-producao")
@@ -78,8 +93,8 @@ def configurar_master():
             erro = "Preencha todos os campos."
         elif codigo != SETUP_TOKEN:
             erro = "Código de configuração incorreto."
-        elif len(senha) < 4:
-            erro = "A senha precisa ter pelo menos 4 caracteres."
+        elif validar_senha_forte(senha):
+            erro = validar_senha_forte(senha)
         else:
             conn.execute(
                 "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, 'master')",
@@ -142,25 +157,24 @@ def usuarios():
         email = request.form.get("email", "").strip()
         usuario_login = request.form.get("usuario", "").strip().lower()
         senha = request.form.get("senha", "")
-        perfil = request.form.get("perfil", "visualizacao")
-        if perfil not in ("master", "visualizacao"):
-            perfil = "visualizacao"
 
         if not nome or not usuario_login or not senha:
             erro = "Preencha nome, usuário e senha."
-        elif len(senha) < 4:
-            erro = "A senha precisa ter pelo menos 4 caracteres."
+        elif validar_senha_forte(senha):
+            erro = validar_senha_forte(senha)
         else:
             try:
+                # Toda conta criada aqui recebe acesso completo (master),
+                # igual ao do administrador que a criou.
                 conn.execute(
-                    "INSERT INTO usuarios (nome, email, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?, ?)",
-                    (nome, email, usuario_login, generate_password_hash(senha), perfil),
+                    "INSERT INTO usuarios (nome, email, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?, 'master')",
+                    (nome, email, usuario_login, generate_password_hash(senha)),
                 )
                 conn.commit()
             except sqlite3.IntegrityError:
                 erro = "Já existe um usuário com esse login."
 
-    lista = conn.execute("SELECT * FROM usuarios ORDER BY perfil DESC, nome").fetchall()
+    lista = conn.execute("SELECT * FROM usuarios ORDER BY nome").fetchall()
     conn.close()
     return render_template("usuarios.html", usuarios=lista, erro=erro)
 

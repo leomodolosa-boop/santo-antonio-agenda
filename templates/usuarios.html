@@ -14,32 +14,34 @@
 
 <div class="card mb-4">
   <div class="card-body p-4">
-    <h5 class="card-title fw-semibold"><i class="bi bi-person-plus text-secondary"></i> Adicionar novo usuário</h5>
+    <h5 class="card-title fw-semibold"><i class="bi bi-person-plus text-secondary"></i> Adicionar novo administrador</h5>
+    <p class="text-muted small mb-3">
+      Toda conta criada aqui recebe acesso completo, igual ao seu (agendar, editar,
+      confirmar/cancelar jogos e gerenciar times). Quem não tiver login continua
+      só vendo o app.
+    </p>
     {% if erro %}
       <div class="alert alert-danger d-flex align-items-center gap-2">
         <i class="bi bi-exclamation-triangle-fill"></i> {{ erro }}
       </div>
     {% endif %}
     <form method="post" class="row g-2">
-      <div class="col-md-3">
+      <div class="col-md-4">
         <input type="text" class="form-control" name="nome" placeholder="Nome" required>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <input type="text" class="form-control" name="usuario" placeholder="Usuário (login)" required>
       </div>
       <div class="col-md-3">
-        <input type="password" class="form-control" name="senha" placeholder="Senha" minlength="4" required>
-      </div>
-      <div class="col-md-2">
-        <select class="form-select" name="perfil">
-          <option value="visualizacao">Visualização</option>
-          <option value="master">Master</option>
-        </select>
+        <input type="password" class="form-control" name="senha" placeholder="Senha" required
+               minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+               title="Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.">
       </div>
       <div class="col-md-1">
         <button type="submit" class="btn btn-brand w-100"><i class="bi bi-plus-lg"></i></button>
       </div>
       <div class="col-12">
+        <div class="form-text mb-1">Senha: mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo (ex: @, #, !).</div>
         <input type="email" class="form-control" name="email" placeholder="E-mail (opcional, só registro)">
       </div>
     </form>
@@ -53,7 +55,6 @@
         <tr>
           <th>Nome</th>
           <th>Usuário</th>
-          <th>Perfil</th>
           <th class="text-end">Ações</th>
         </tr>
       </thead>
@@ -62,13 +63,6 @@
         <tr>
           <td class="fw-semibold">{{ u.nome }}</td>
           <td class="text-secondary">{{ u.usuario }}</td>
-          <td>
-            {% if u.perfil == 'master' %}
-              <span class="badge rounded-pill badge-confirmado">Master</span>
-            {% else %}
-              <span class="badge rounded-pill badge-pendente">Visualização</span>
-            {% endif %}
-          </td>
           <td class="text-end">
             {% if u.id != usuario_logado.id %}
               <form method="post" action="{{ url_for('usuarios_excluir', usuario_id=u.id) }}"
