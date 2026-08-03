@@ -261,18 +261,6 @@ def salvar_escudo_blob(conn, time_id, caminho):
     conn.commit()
 
 
-def _restaurar_escudo_do_blob(conn, time_id, caminho):
-    if not USANDO_POSTGRES:
-        return False
-    row = conn.execute(
-        "SELECT escudo_dados FROM times WHERE id = ?", (time_id,)
-    ).fetchone()
-    if row and row["escudo_dados"] is not None:
-        Path(caminho).write_bytes(bytes(row["escudo_dados"]))
-        return True
-    return False
-
-
 def cor_dominante_escudo(caminho):
     """Cor média do escudo (ignorando pixels transparentes), usada como acento
     visual do time nos cards de jogo. Retorna None se não conseguir ler a imagem."""
@@ -306,6 +294,8 @@ def init_db():
     conn = get_conn()
 
     if USANDO_POSTGRES:
+        # Um único round-trip para todo o DDL — cada ida-e-volta ao Postgres
+        # remoto custa ~250-300ms, e isso soma rápido no boot do app.
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS times (
@@ -319,12 +309,8 @@ def init_db():
                 escudo_cor TEXT,
                 nome_campo TEXT,
                 endereco TEXT
-            )
-            """
-        )
-        conn.execute("ALTER TABLE times ADD COLUMN IF NOT EXISTS escudo_cor TEXT")
-        conn.execute(
-            """
+            );
+            ALTER TABLE times ADD COLUMN IF NOT EXISTS escudo_cor TEXT;
             CREATE TABLE IF NOT EXISTS jogos (
                 id SERIAL PRIMARY KEY,
                 data TEXT NOT NULL UNIQUE,
@@ -336,11 +322,7 @@ def init_db():
                 placar_santo INTEGER,
                 placar_adversario INTEGER,
                 observacao TEXT
-            )
-            """
-        )
-        conn.execute(
-            """
+            );
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
                 nome TEXT NOT NULL,
@@ -348,10 +330,9 @@ def init_db():
                 usuario TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
                 perfil TEXT NOT NULL DEFAULT 'visualizacao'
-            )
+            );
             """
         )
-        conn.commit()
     else:
         conn.executescript(
             """
@@ -416,7 +397,6 @@ def init_db():
                 "INSERT INTO times (nome, is_fixo) VALUES (?, ?)",
                 (nome, 1 if nome == TIME_FIXO else 0),
             )
-    conn.commit()
 
     conn.execute(
         """
@@ -426,74 +406,81 @@ def init_db():
         """,
         (TIME_FIXO_CIDADE, TIME_FIXO_CAMPO, TIME_FIXO_ENDERECO),
     )
-    conn.commit()
 
     ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
 
-    time_fixo_row = conn.execute("SELECT id, escudo, escudo_cor FROM times WHERE is_fixo = 1").fetchone()
-    if time_fixo_row:
-        escudo_fixo_nome = time_fixo_row["escudo"]
-        caminho_fixo = ESCUDOS_DIR / escudo_fixo_nome if escudo_fixo_nome else None
-        if not escudo_fixo_nome and BRAND_ESCUDO_OFICIAL.exists():
-            escudo_fixo_nome = f"time_{time_fixo_row['id']}.png"
-            caminho_fixo = ESCUDOS_DIR / escudo_fixo_nome
-            shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho_fixo)
-            conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo_fixo_nome, time_fixo_row["id"]))
-            conn.commit()
-            salvar_escudo_blob(conn, time_fixo_row["id"], caminho_fixo)
-        elif caminho_fixo and not caminho_fixo.exists():
-            # Redeploy apagou o disco (Render é efêmero); restaura do banco se possível.
-            if not _restaurar_escudo_do_blob(conn, time_fixo_row["id"], caminho_fixo) and BRAND_ESCUDO_OFICIAL.exists():
-                shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho_fixo)
-        if caminho_fixo and caminho_fixo.exists():
-            gerar_icones_pwa(caminho_fixo)
-            if not time_fixo_row["escudo_cor"]:
-                salvar_cor_escudo(conn, time_fixo_row["id"], caminho_fixo)
-
-    todos_adversarios = conn.execute(
-        "SELECT id, nome, escudo, escudo_cor FROM times WHERE is_fixo = 0 ORDER BY id"
+    # Uma única query traz escudo + blob de todo mundo, em vez de uma consulta
+    # por time — com 25+ times isso é a diferença entre ~1s e ~15s de boot,
+    # o suficiente pra estourar o tempo limite de deploy do Render.
+    campo_blob = ", escudo_dados" if USANDO_POSTGRES else ""
+    todos_times = conn.execute(
+        f"SELECT id, nome, escudo, escudo_cor, is_fixo{campo_blob} FROM times ORDER BY is_fixo DESC, id"
     ).fetchall()
-    for time_row in todos_adversarios:
+
+    for time_row in todos_times:
+        eh_fixo = bool(time_row["is_fixo"])
         nome_arquivo = time_row["escudo"]
         precisa_cor = not time_row["escudo_cor"]
+        blob = time_row["escudo_dados"] if USANDO_POSTGRES else None
+
         if nome_arquivo:
             caminho = ESCUDOS_DIR / nome_arquivo
-            if not caminho.exists() and not _restaurar_escudo_do_blob(conn, time_row["id"], caminho):
-                gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
-                salvar_escudo_blob(conn, time_row["id"], caminho)
-        else:
+            if not caminho.exists():
+                if blob is not None:
+                    Path(caminho).write_bytes(bytes(blob))
+                elif eh_fixo and BRAND_ESCUDO_OFICIAL.exists():
+                    shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho)
+                elif not eh_fixo:
+                    gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
+                    salvar_escudo_blob(conn, time_row["id"], caminho)
+        elif eh_fixo and BRAND_ESCUDO_OFICIAL.exists():
+            nome_arquivo = f"time_{time_row['id']}.png"
+            caminho = ESCUDOS_DIR / nome_arquivo
+            shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho)
+            conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
+            salvar_escudo_blob(conn, time_row["id"], caminho)
+        elif not eh_fixo:
             nome_arquivo = f"time_{time_row['id']}.png"
             caminho = ESCUDOS_DIR / nome_arquivo
             gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
             conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
             salvar_escudo_blob(conn, time_row["id"], caminho)
-        if precisa_cor and caminho.exists():
-            salvar_cor_escudo(conn, time_row["id"], caminho)
-    conn.commit()
-
-    ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times").fetchall()}
-    for data, nome_adversario, mandante, local, observacao in JOGOS_INICIAIS:
-        adversario_id = ids_times.get(nome_adversario)
-        if not adversario_id:
-            continue
-        if USANDO_POSTGRES:
-            conn.execute(
-                """
-                INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
-                VALUES (?, ?, ?, ?, ?, 'pendente', ?)
-                ON CONFLICT (data) DO NOTHING
-                """,
-                (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
-            )
         else:
-            conn.execute(
-                """
+            caminho = None
+
+        if caminho and caminho.exists():
+            if eh_fixo:
+                gerar_icones_pwa(caminho)
+            if precisa_cor:
+                salvar_cor_escudo(conn, time_row["id"], caminho)
+
+    ids_times = {row["nome"]: row["id"] for row in todos_times}
+    linhas = [
+        (data, HORA_PADRAO, ids_times[nome_adversario], mandante, local, observacao)
+        for data, nome_adversario, mandante, local, observacao in JOGOS_INICIAIS
+        if nome_adversario in ids_times
+    ]
+    if linhas:
+        # Uma única query com todas as linhas, em vez de uma por jogo — com o
+        # Postgres remoto, cada ida-e-volta de rede custa ~250-300ms, e são
+        # dezenas de jogos pré-cadastrados na temporada.
+        if USANDO_POSTGRES:
+            marcadores = ", ".join(["(?, ?, ?, ?, ?, 'pendente', ?)"] * len(linhas))
+            sql = f"""
+                INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+                VALUES {marcadores}
+                ON CONFLICT (data) DO NOTHING
+            """
+            parametros = tuple(valor for linha in linhas for valor in linha)
+            conn.execute(sql, parametros)
+        else:
+            marcadores = ", ".join(["(?, ?, ?, ?, ?, 'pendente', ?)"] * len(linhas))
+            sql = f"""
                 INSERT OR IGNORE INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
-                VALUES (?, ?, ?, ?, ?, 'pendente', ?)
-                """,
-                (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
-            )
-    conn.commit()
+                VALUES {marcadores}
+            """
+            parametros = tuple(valor for linha in linhas for valor in linha)
+            conn.execute(sql, parametros)
 
     conn.execute("UPDATE jogos SET hora = ? WHERE hora IS NULL OR hora = ''", (HORA_PADRAO,))
     conn.commit()
