@@ -138,8 +138,9 @@ def jogo_novo():
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
     conn.close()
+    template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
-        "jogo_form.html",
+        template,
         jogo=None,
         data_str=data_str,
         adversarios=adversarios,
@@ -197,8 +198,9 @@ def jogo_editar(jogo_id):
             jogo_atual["id"] = jogo_id
             jogo_atual["adversario_id"] = int(adversario_id)
             conn.close()
+            template = "jogo_form_conteudo.html" if request.form.get("modal") == "1" else "jogo_form.html"
             return render_template(
-                "jogo_form.html",
+                template,
                 jogo=jogo_atual,
                 data_str=nova_data,
                 adversarios=adversarios,
@@ -215,8 +217,9 @@ def jogo_editar(jogo_id):
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
     conn.close()
+    template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
-        "jogo_form.html",
+        template,
         jogo=jogo,
         data_str=jogo["data"],
         adversarios=adversarios,
