@@ -11,7 +11,15 @@ from flask_wtf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-from db import TIME_FIXO, gerar_icones_pwa, get_conn, init_db
+from db import (
+    ErroIntegridade,
+    TIME_FIXO,
+    USANDO_POSTGRES,
+    gerar_icones_pwa,
+    get_conn,
+    init_db,
+    salvar_escudo_blob,
+)
 
 
 def validar_senha_forte(senha):
@@ -36,7 +44,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "2.0.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -176,7 +184,7 @@ def usuarios():
                     (nome, email, usuario_login, generate_password_hash(senha)),
                 )
                 conn.commit()
-            except sqlite3.IntegrityError:
+            except (sqlite3.IntegrityError, ErroIntegridade):
                 erro = "Já existe um usuário com esse login."
 
     lista = conn.execute("SELECT * FROM usuarios ORDER BY nome").fetchall()
@@ -197,14 +205,16 @@ def usuarios_excluir(usuario_id):
     return redirect(url_for("usuarios"))
 
 
-def salvar_escudo(arquivo, time_id):
+def salvar_escudo(arquivo, time_id, conn):
     if not arquivo or not arquivo.filename:
         return None
     ext = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else ""
     if ext not in EXTENSOES_PERMITIDAS:
         return None
     nome_arquivo = secure_filename(f"time_{time_id}.png")
-    arquivo.save(ESCUDOS_DIR / nome_arquivo)
+    caminho = ESCUDOS_DIR / nome_arquivo
+    arquivo.save(caminho)
+    salvar_escudo_blob(conn, time_id, caminho)
     return nome_arquivo
 
 MESES_PT = [
@@ -383,7 +393,7 @@ def jogo_novo():
                     (nova_data, hora, adversario_id, mandante, local, observacao),
                 )
                 conn.commit()
-            except sqlite3.IntegrityError:
+            except (sqlite3.IntegrityError, ErroIntegridade):
                 erro = "Já existe um jogo agendado para essa data."
 
         if not erro:
@@ -463,7 +473,7 @@ def jogo_editar(jogo_id):
                      placar_santo, placar_adversario, jogo_id),
                 )
                 conn.commit()
-            except sqlite3.IntegrityError:
+            except (sqlite3.IntegrityError, ErroIntegridade):
                 erro = "Já existe um jogo agendado para essa data."
 
         if erro:
@@ -564,17 +574,34 @@ def times():
         nome_campo = request.form.get("nome_campo", "").strip()
         endereco = request.form.get("endereco", "").strip()
         if nome:
-            cursor = conn.execute(
-                """
-                INSERT OR IGNORE INTO times (nome, cidade, contato, nome_campo, endereco)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (nome, cidade, contato, nome_campo, endereco),
-            )
-            conn.commit()
-            if cursor.rowcount:
-                novo_id = cursor.lastrowid
-                escudo = salvar_escudo(request.files.get("escudo"), novo_id)
+            novo_id = None
+            if USANDO_POSTGRES:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO times (nome, cidade, contato, nome_campo, endereco)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (nome) DO NOTHING
+                    RETURNING id
+                    """,
+                    (nome, cidade, contato, nome_campo, endereco),
+                )
+                conn.commit()
+                row_id = cursor.fetchone()
+                if row_id:
+                    novo_id = row_id["id"]
+            else:
+                cursor = conn.execute(
+                    """
+                    INSERT OR IGNORE INTO times (nome, cidade, contato, nome_campo, endereco)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (nome, cidade, contato, nome_campo, endereco),
+                )
+                conn.commit()
+                if cursor.rowcount:
+                    novo_id = cursor.lastrowid
+            if novo_id:
+                escudo = salvar_escudo(request.files.get("escudo"), novo_id, conn)
                 if escudo:
                     conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo, novo_id))
                     conn.commit()
@@ -606,7 +633,7 @@ def times_editar(time_id):
             (cidade, contato, nome_campo, endereco, time_id),
         )
         conn.commit()
-        escudo = salvar_escudo(request.files.get("escudo"), time_id)
+        escudo = salvar_escudo(request.files.get("escudo"), time_id, conn)
         if escudo:
             conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo, time_id))
             conn.commit()

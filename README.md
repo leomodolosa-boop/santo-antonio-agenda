@@ -17,9 +17,21 @@ Este repositório já inclui `render.yaml`. No Render, use **New +  Blueprint**
 e aponte para este repositório — ele detecta a configuração automaticamente.
 
 > **Atenção:** no plano gratuito do Render o disco não é persistente entre
-> deploys. Para não perder os dados dos times e jogos cadastrados, considere
-> um disco pago (Render Disks) ou faça backup periódico do arquivo
-> `agenda_futebol.db`.
+> deploys — sem um banco externo (veja abaixo), os dados e escudos são
+> apagados a cada atualização.
+
+## Banco de dados persistente (recomendado)
+
+Por padrão o app usa um arquivo SQLite local, que some a cada redeploy no
+plano gratuito do Render. Para os dados sobreviverem, defina a variável de
+ambiente `DATABASE_URL` (Render → Settings → Environment) com a connection
+string de um Postgres gratuito (ex: [Neon](https://neon.tech) ou
+[Supabase](https://supabase.com), usando o "Session pooler" caso o host de
+conexão direta use IPv6). Com `DATABASE_URL` definida, o app passa a usar
+Postgres automaticamente — inclusive guardando os escudos dentro do próprio
+banco, então nem as imagens se perdem em um redeploy. Sem essa variável, o
+app continua funcionando normalmente com SQLite local (bom para rodar na
+sua máquina).
 
 ## Login e permissões
 

@@ -1,9 +1,22 @@
 import math
+import os
 import shutil
 import sqlite3
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USANDO_POSTGRES = bool(DATABASE_URL)
+
+if USANDO_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+
+
+class ErroIntegridade(Exception):
+    """Violação de restrição UNIQUE/NOT NULL, unificada entre SQLite e Postgres."""
+
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "agenda_futebol.db"
@@ -183,70 +196,187 @@ def gerar_escudo_padrao(nome, indice, caminho_saida):
     img.save(caminho_saida)
 
 
+class _CursorPostgres:
+    """Deixa o cursor do psycopg2 parecido com o do sqlite3 (rowcount, iteração direta)."""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    def __iter__(self):
+        return iter(self._cursor)
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+
+class _ConexaoPostgres:
+    """Faz a conexão psycopg2 aceitar o mesmo padrão de uso do sqlite3.Connection
+    usado no resto do app: conn.execute(sql_com_?, params).fetchone()/.fetchall()."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql, params=()):
+        cursor = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cursor.execute(sql.replace("?", "%s"), params)
+        except psycopg2.IntegrityError as e:
+            self._conn.rollback()
+            raise ErroIntegridade(str(e)) from e
+        return _CursorPostgres(cursor)
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
 def get_conn():
+    if USANDO_POSTGRES:
+        return _ConexaoPostgres(psycopg2.connect(DATABASE_URL))
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
-def init_db():
-    conn = get_conn()
-    conn.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS times (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT UNIQUE NOT NULL,
-            cidade TEXT,
-            contato TEXT,
-            is_fixo INTEGER NOT NULL DEFAULT 0,
-            escudo TEXT,
-            nome_campo TEXT,
-            endereco TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS jogos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data TEXT NOT NULL UNIQUE,
-            hora TEXT,
-            adversario_id INTEGER NOT NULL REFERENCES times(id),
-            mandante TEXT NOT NULL DEFAULT 'casa',
-            local TEXT,
-            status TEXT NOT NULL DEFAULT 'confirmado',
-            placar_santo INTEGER,
-            placar_adversario INTEGER,
-            observacao TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            email TEXT,
-            usuario TEXT UNIQUE NOT NULL,
-            senha_hash TEXT NOT NULL,
-            perfil TEXT NOT NULL DEFAULT 'visualizacao'
-        );
-        """
+def salvar_escudo_blob(conn, time_id, caminho):
+    """No Postgres, guarda o PNG do escudo dentro do banco (bytea) pra sobreviver
+    a redeploys, já que o disco do Render é apagado a cada atualização."""
+    if not USANDO_POSTGRES:
+        return
+    dados = Path(caminho).read_bytes()
+    conn.execute(
+        "UPDATE times SET escudo_dados = ? WHERE id = ?",
+        (psycopg2.Binary(dados), time_id),
     )
     conn.commit()
 
-    colunas = {row["name"] for row in conn.execute("PRAGMA table_info(times)")}
-    if "escudo" not in colunas:
-        conn.execute("ALTER TABLE times ADD COLUMN escudo TEXT")
-    if "nome_campo" not in colunas:
-        conn.execute("ALTER TABLE times ADD COLUMN nome_campo TEXT")
-    if "endereco" not in colunas:
-        conn.execute("ALTER TABLE times ADD COLUMN endereco TEXT")
-    conn.commit()
 
-    colunas_jogos = {row["name"] for row in conn.execute("PRAGMA table_info(jogos)")}
-    if "hora" not in colunas_jogos:
-        conn.execute("ALTER TABLE jogos ADD COLUMN hora TEXT")
-    if "mandante" not in colunas_jogos:
-        conn.execute("ALTER TABLE jogos ADD COLUMN mandante TEXT NOT NULL DEFAULT 'casa'")
-    conn.commit()
+def _restaurar_escudo_do_blob(conn, time_id, caminho):
+    if not USANDO_POSTGRES:
+        return False
+    row = conn.execute(
+        "SELECT escudo_dados FROM times WHERE id = ?", (time_id,)
+    ).fetchone()
+    if row and row["escudo_dados"] is not None:
+        Path(caminho).write_bytes(bytes(row["escudo_dados"]))
+        return True
+    return False
 
-    existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times")}
+
+def init_db():
+    conn = get_conn()
+
+    if USANDO_POSTGRES:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS times (
+                id SERIAL PRIMARY KEY,
+                nome TEXT UNIQUE NOT NULL,
+                cidade TEXT,
+                contato TEXT,
+                is_fixo INTEGER NOT NULL DEFAULT 0,
+                escudo TEXT,
+                escudo_dados BYTEA,
+                nome_campo TEXT,
+                endereco TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS jogos (
+                id SERIAL PRIMARY KEY,
+                data TEXT NOT NULL UNIQUE,
+                hora TEXT,
+                adversario_id INTEGER NOT NULL REFERENCES times(id),
+                mandante TEXT NOT NULL DEFAULT 'casa',
+                local TEXT,
+                status TEXT NOT NULL DEFAULT 'confirmado',
+                placar_santo INTEGER,
+                placar_adversario INTEGER,
+                observacao TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nome TEXT NOT NULL,
+                email TEXT,
+                usuario TEXT UNIQUE NOT NULL,
+                senha_hash TEXT NOT NULL,
+                perfil TEXT NOT NULL DEFAULT 'visualizacao'
+            )
+            """
+        )
+        conn.commit()
+    else:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS times (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT UNIQUE NOT NULL,
+                cidade TEXT,
+                contato TEXT,
+                is_fixo INTEGER NOT NULL DEFAULT 0,
+                escudo TEXT,
+                nome_campo TEXT,
+                endereco TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS jogos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data TEXT NOT NULL UNIQUE,
+                hora TEXT,
+                adversario_id INTEGER NOT NULL REFERENCES times(id),
+                mandante TEXT NOT NULL DEFAULT 'casa',
+                local TEXT,
+                status TEXT NOT NULL DEFAULT 'confirmado',
+                placar_santo INTEGER,
+                placar_adversario INTEGER,
+                observacao TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                email TEXT,
+                usuario TEXT UNIQUE NOT NULL,
+                senha_hash TEXT NOT NULL,
+                perfil TEXT NOT NULL DEFAULT 'visualizacao'
+            );
+            """
+        )
+        conn.commit()
+
+        colunas = {row["name"] for row in conn.execute("PRAGMA table_info(times)")}
+        if "escudo" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN escudo TEXT")
+        if "nome_campo" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN nome_campo TEXT")
+        if "endereco" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN endereco TEXT")
+        conn.commit()
+
+        colunas_jogos = {row["name"] for row in conn.execute("PRAGMA table_info(jogos)")}
+        if "hora" not in colunas_jogos:
+            conn.execute("ALTER TABLE jogos ADD COLUMN hora TEXT")
+        if "mandante" not in colunas_jogos:
+            conn.execute("ALTER TABLE jogos ADD COLUMN mandante TEXT NOT NULL DEFAULT 'casa'")
+        conn.commit()
+
+    existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}
     for nome in TIMES_INICIAIS:
         if nome not in existentes:
             conn.execute(
@@ -265,37 +395,66 @@ def init_db():
     )
     conn.commit()
 
-    time_fixo_row = conn.execute("SELECT id, escudo FROM times WHERE is_fixo = 1").fetchone()
-    if time_fixo_row and not time_fixo_row["escudo"] and BRAND_ESCUDO_OFICIAL.exists():
-        ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
-        nome_arquivo = f"time_{time_fixo_row['id']}.png"
-        shutil.copyfile(BRAND_ESCUDO_OFICIAL, ESCUDOS_DIR / nome_arquivo)
-        conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_fixo_row["id"]))
-        conn.commit()
-        gerar_icones_pwa(ESCUDOS_DIR / nome_arquivo)
-
     ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
-    sem_escudo = conn.execute(
-        "SELECT id, nome FROM times WHERE is_fixo = 0 AND escudo IS NULL ORDER BY id"
+
+    time_fixo_row = conn.execute("SELECT id, escudo FROM times WHERE is_fixo = 1").fetchone()
+    if time_fixo_row:
+        escudo_fixo_nome = time_fixo_row["escudo"]
+        caminho_fixo = ESCUDOS_DIR / escudo_fixo_nome if escudo_fixo_nome else None
+        if not escudo_fixo_nome and BRAND_ESCUDO_OFICIAL.exists():
+            escudo_fixo_nome = f"time_{time_fixo_row['id']}.png"
+            caminho_fixo = ESCUDOS_DIR / escudo_fixo_nome
+            shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho_fixo)
+            conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo_fixo_nome, time_fixo_row["id"]))
+            conn.commit()
+            salvar_escudo_blob(conn, time_fixo_row["id"], caminho_fixo)
+        elif caminho_fixo and not caminho_fixo.exists():
+            # Redeploy apagou o disco (Render é efêmero); restaura do banco se possível.
+            if not _restaurar_escudo_do_blob(conn, time_fixo_row["id"], caminho_fixo) and BRAND_ESCUDO_OFICIAL.exists():
+                shutil.copyfile(BRAND_ESCUDO_OFICIAL, caminho_fixo)
+        if caminho_fixo and caminho_fixo.exists():
+            gerar_icones_pwa(caminho_fixo)
+
+    todos_adversarios = conn.execute(
+        "SELECT id, nome, escudo FROM times WHERE is_fixo = 0 ORDER BY id"
     ).fetchall()
-    for time_row in sem_escudo:
-        nome_arquivo = f"time_{time_row['id']}.png"
-        gerar_escudo_padrao(time_row["nome"], time_row["id"], ESCUDOS_DIR / nome_arquivo)
-        conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
+    for time_row in todos_adversarios:
+        nome_arquivo = time_row["escudo"]
+        if nome_arquivo:
+            caminho = ESCUDOS_DIR / nome_arquivo
+            if not caminho.exists() and not _restaurar_escudo_do_blob(conn, time_row["id"], caminho):
+                gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
+                salvar_escudo_blob(conn, time_row["id"], caminho)
+        else:
+            nome_arquivo = f"time_{time_row['id']}.png"
+            caminho = ESCUDOS_DIR / nome_arquivo
+            gerar_escudo_padrao(time_row["nome"], time_row["id"], caminho)
+            conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_row["id"]))
+            salvar_escudo_blob(conn, time_row["id"], caminho)
     conn.commit()
 
-    ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times")}
+    ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times").fetchall()}
     for data, nome_adversario, mandante, local, observacao in JOGOS_INICIAIS:
         adversario_id = ids_times.get(nome_adversario)
         if not adversario_id:
             continue
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
-            VALUES (?, ?, ?, ?, ?, 'pendente', ?)
-            """,
-            (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
-        )
+        if USANDO_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+                VALUES (?, ?, ?, ?, ?, 'pendente', ?)
+                ON CONFLICT (data) DO NOTHING
+                """,
+                (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
+                VALUES (?, ?, ?, ?, ?, 'pendente', ?)
+                """,
+                (data, HORA_PADRAO, adversario_id, mandante, local, observacao),
+            )
     conn.commit()
 
     conn.execute("UPDATE jogos SET hora = ? WHERE hora IS NULL OR hora = ''", (HORA_PADRAO,))
