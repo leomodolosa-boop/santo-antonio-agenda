@@ -23,18 +23,18 @@
 
       <div class="mb-4">
         <label class="form-label fw-semibold d-block">Mandante do jogo</label>
-        <div class="btn-group" role="group">
-          <input type="radio" class="btn-check" name="mandante" id="mandante-casa" value="casa"
+        <div class="mandante-toggle">
+          <input type="radio" name="mandante" id="mandante-casa" value="casa"
                  {% if not jogo or jogo.mandante != 'fora' %}checked{% endif %}>
-          <label class="btn btn-outline-brand" for="mandante-casa">
-            <i class="bi bi-house-door"></i> {{ time_fixo }} manda (casa)
-          </label>
-
-          <input type="radio" class="btn-check" name="mandante" id="mandante-fora" value="fora"
+          <input type="radio" name="mandante" id="mandante-fora" value="fora"
                  {% if jogo and jogo.mandante == 'fora' %}checked{% endif %}>
-          <label class="btn btn-outline-brand" for="mandante-fora">
-            <i class="bi bi-airplane"></i> Jogo fora (adversário manda)
+          <label class="mandante-opcao" for="mandante-casa">
+            <i class="bi bi-house-door-fill"></i> Casa
           </label>
+          <label class="mandante-opcao" for="mandante-fora">
+            <i class="bi bi-airplane-fill"></i> Fora
+          </label>
+          <div class="mandante-indicador"></div>
         </div>
       </div>
 
@@ -127,6 +127,56 @@
 </div>
 
 <style>
+  .mandante-toggle {
+    position: relative;
+    display: flex;
+    background: #eef1f3;
+    border-radius: 14px;
+    padding: 4px;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .mandante-toggle input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .mandante-opcao {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .7rem .5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    color: #6c757d;
+    transition: color .3s ease;
+    user-select: none;
+  }
+  .mandante-opcao i { transition: transform .3s ease; }
+  .mandante-toggle:active .mandante-opcao i { transform: scale(.85); }
+  .mandante-indicador {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    bottom: 4px;
+    width: calc(50% - 4px);
+    background: linear-gradient(120deg, var(--sao-verde) 0%, var(--sao-verde-escuro) 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(15, 74, 44, .35);
+    transition: transform .35s cubic-bezier(.34, 1.4, .64, 1);
+    z-index: 0;
+  }
+  #mandante-fora:checked ~ .mandante-indicador { transform: translateX(100%); }
+  #mandante-casa:checked ~ label[for="mandante-casa"],
+  #mandante-fora:checked ~ label[for="mandante-fora"] { color: #fff; }
+
   .time-picker-dropdown {
     display: none;
     position: absolute;
