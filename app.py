@@ -4,19 +4,15 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from flask import Flask, redirect, render_template, request, url_for
-from PIL import Image
 from werkzeug.utils import secure_filename
 
-from db import TIME_FIXO, get_conn, init_db
+from db import TIME_FIXO, gerar_icones_pwa, get_conn, init_db
 
 app = Flask(__name__)
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
-ICONS_DIR = Path(__file__).parent / "static" / "icons"
-ICONS_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSOES_PERMITIDAS = {"png"}
-COR_FUNDO_ICONE = (107, 21, 34, 255)  # grená da marca
 
 init_db()
 
@@ -30,24 +26,6 @@ def salvar_escudo(arquivo, time_id):
     nome_arquivo = secure_filename(f"time_{time_id}.png")
     arquivo.save(ESCUDOS_DIR / nome_arquivo)
     return nome_arquivo
-
-
-def gerar_icones_pwa(caminho_escudo):
-    """Gera os ícones do app (192px/512px) a partir do escudo do time fixo,
-    centralizado com respiro sobre o fundo grená da marca."""
-    try:
-        origem = Image.open(caminho_escudo).convert("RGBA")
-    except Exception:
-        return
-    for tamanho in (192, 512):
-        fundo = Image.new("RGBA", (tamanho, tamanho), COR_FUNDO_ICONE)
-        area = int(tamanho * 0.8)
-        miniatura = origem.copy()
-        miniatura.thumbnail((area, area), Image.LANCZOS)
-        x = (tamanho - miniatura.width) // 2
-        y = (tamanho - miniatura.height) // 2
-        fundo.paste(miniatura, (x, y), miniatura)
-        fundo.convert("RGB").save(ICONS_DIR / f"icon-{tamanho}.png")
 
 
 @app.context_processor

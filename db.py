@@ -1,7 +1,14 @@
+import shutil
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "agenda_futebol.db"
+from PIL import Image
+
+BASE_DIR = Path(__file__).parent
+DB_PATH = BASE_DIR / "agenda_futebol.db"
+ESCUDOS_DIR = BASE_DIR / "static" / "escudos"
+ICONS_DIR = BASE_DIR / "static" / "icons"
+BRAND_ESCUDO_OFICIAL = BASE_DIR / "static" / "brand" / "escudo_oficial.png"
 
 TIME_FIXO = "Santo Antônio do Oriente"
 
@@ -58,6 +65,31 @@ JOGOS_INICIAIS = [
     ("2026-11-28", "São José", "casa", LOCAL_CASA, ""),
     ("2026-12-05", "Rancho Dantas", "fora", "", ""),
 ]
+
+
+def gerar_icones_pwa(caminho_escudo):
+    """Gera os ícones do app (192px/512px): faixas da bandeira (grená/branco/
+    verde) como fundo, com o escudo centralizado por cima."""
+    try:
+        origem = Image.open(caminho_escudo).convert("RGBA")
+    except Exception:
+        return
+
+    ICONS_DIR.mkdir(parents=True, exist_ok=True)
+    for tamanho in (192, 512):
+        fundo = Image.new("RGBA", (tamanho, tamanho), (0, 0, 0, 0))
+        faixa = tamanho / 3
+        for i, cor in enumerate([(107, 21, 34, 255), (246, 246, 244, 255), (15, 74, 44, 255)]):
+            bloco = Image.new("RGBA", (tamanho, int(faixa) + 1), cor)
+            fundo.paste(bloco, (0, int(i * faixa)))
+
+        area = int(tamanho * 0.82)
+        miniatura = origem.copy()
+        miniatura.thumbnail((area, area), Image.LANCZOS)
+        x = (tamanho - miniatura.width) // 2
+        y = (tamanho - miniatura.height) // 2
+        fundo.paste(miniatura, (x, y), miniatura)
+        fundo.convert("RGB").save(ICONS_DIR / f"icon-{tamanho}.png")
 
 
 def get_conn():
@@ -132,6 +164,15 @@ def init_db():
         (TIME_FIXO_CIDADE, TIME_FIXO_CAMPO, TIME_FIXO_ENDERECO),
     )
     conn.commit()
+
+    time_fixo_row = conn.execute("SELECT id, escudo FROM times WHERE is_fixo = 1").fetchone()
+    if time_fixo_row and not time_fixo_row["escudo"] and BRAND_ESCUDO_OFICIAL.exists():
+        ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
+        nome_arquivo = f"time_{time_fixo_row['id']}.png"
+        shutil.copyfile(BRAND_ESCUDO_OFICIAL, ESCUDOS_DIR / nome_arquivo)
+        conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (nome_arquivo, time_fixo_row["id"]))
+        conn.commit()
+        gerar_icones_pwa(ESCUDOS_DIR / nome_arquivo)
 
     ids_times = {row["nome"]: row["id"] for row in conn.execute("SELECT id, nome FROM times")}
     for data, nome_adversario, mandante, local, observacao in JOGOS_INICIAIS:
