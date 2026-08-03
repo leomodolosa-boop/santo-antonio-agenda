@@ -12,6 +12,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Agenda de Futebol{% endblock %}</title>
 
+  <meta name="description" content="{% block og_description %}Calendário de jogos, resultados e confirmações do Santo Antônio do Oriente, futebol amador veterano.{% endblock %}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Agenda Santo Antônio do Oriente">
+  <meta property="og:title" content="{% block og_title %}Agenda Santo Antônio do Oriente{% endblock %}">
+  <meta property="og:description" content="{{ self.og_description() }}">
+  <meta property="og:image" content="{{ url_for('static', filename='escudos/' ~ escudo_fixo, _external=True) if escudo_fixo else url_for('static', filename='icons/icon-512.png', _external=True) }}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta name="twitter:card" content="summary">
+
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <meta name="theme-color" content="#6b1522">
 

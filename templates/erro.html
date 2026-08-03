@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-emoji-dizzy me-1"></i> {{ codigo }}</h1>
+    <div class="subtitle">{{ titulo }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card text-center">
+      <div class="card-body p-4">
+        <i class="bi bi-shield-exclamation" style="font-size: 3rem; color: var(--sao-grena);"></i>
+        <p class="text-secondary mt-3 mb-4">{{ mensagem }}</p>
+        <a href="{{ url_for('index') }}" class="btn btn-brand">
+          <i class="bi bi-calendar-event"></i> Voltar para o calendário
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

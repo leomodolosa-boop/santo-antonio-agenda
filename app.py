@@ -36,7 +36,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -643,6 +643,26 @@ def times_excluir(time_id):
             conn.commit()
     conn.close()
     return redirect(url_for("times"))
+
+
+@app.errorhandler(404)
+def erro_404(e):
+    return render_template(
+        "erro.html",
+        codigo=404,
+        titulo="Página não encontrada",
+        mensagem="O link que você seguiu não existe ou o jogo/time já foi removido.",
+    ), 404
+
+
+@app.errorhandler(500)
+def erro_500(e):
+    return render_template(
+        "erro.html",
+        codigo=500,
+        titulo="Algo deu errado",
+        mensagem="Tivemos um problema inesperado. Tente novamente em instantes.",
+    ), 500
 
 
 if __name__ == "__main__":
