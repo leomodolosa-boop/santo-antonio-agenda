@@ -122,19 +122,20 @@
       top: 50%;
       right: 3%;
       transform: translateY(-50%);
-      width: 200px;
-      height: 200px;
-      max-width: 34vw;
-      max-height: 200px;
-      border-radius: 20px;
+      width: clamp(64px, 14vw, 160px);
+      height: clamp(64px, 14vw, 160px);
+      border-radius: 18px;
       background-color: rgba(255,255,255,.08);
       box-shadow: 0 8px 24px rgba(0,0,0,.35);
       background-image: url('{{ url_for("static", filename="escudos/" ~ escudo_fixo) }}');
-      background-size: 88%;
+      background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
       opacity: 1;
       pointer-events: none;
+    }
+    @media (max-width: 480px) {
+      .page-hero::after { display: none; }
     }
     {% endif %}
     .page-hero .container { position: relative; z-index: 1; }
