@@ -191,14 +191,17 @@
     }
     .btn-brand:hover { background: var(--sao-verde-escuro); border-color: var(--sao-verde-escuro); color: #fff; }
     .btn-outline-brand {
+      background: var(--sao-grena);
       border-color: var(--sao-grena);
-      color: var(--sao-grena);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(107, 21, 34, .3);
     }
-    .btn-outline-brand:hover { background: var(--sao-grena); color: #fff; }
+    .btn-outline-brand:hover { background: var(--sao-grena-escuro); border-color: var(--sao-grena-escuro); color: #fff; }
     .btn-outline-danger {
-      border-color: #c0392b;
-      color: #c0392b;
-      border-width: 1.5px;
+      background: #e0483a;
+      border-color: #e0483a;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(224, 72, 58, .35);
     }
     .btn-outline-danger:hover { background: #c0392b; border-color: #c0392b; color: #fff; }
 
@@ -230,24 +233,23 @@
       border-radius: 18px;
       overflow: hidden;
       isolation: isolate;
-      background: rgba(255, 255, 255, .55);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, .5);
-      box-shadow: 0 4px 20px rgba(20, 20, 40, .06);
+      background: rgba(255, 255, 255, .14);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, .35);
+      box-shadow: 0 4px 24px rgba(20, 20, 40, .12);
     }
     .confronto::before {
       content: "";
       position: absolute;
-      inset: -25%;
+      inset: 0;
       z-index: -1;
-      /* Lado do Santo Antônio: sempre o tricolor da bandeira (grená → branco → verde). */
+      /* Lado do Santo Antônio: sempre o tricolor da bandeira (grená → branco → verde), translúcido. */
       background:
-        radial-gradient(circle at var(--pos-santo) 45%,
-          rgba(107, 21, 34, .55) 0%, rgba(246, 246, 244, .4) 32%, rgba(15, 74, 44, .5) 55%, transparent 75%),
-        radial-gradient(circle at var(--pos-adv) 45%, rgba(var(--cor-adv-rgb), .55) 0%, transparent 60%);
-      filter: blur(30px);
-      opacity: .65;
+        radial-gradient(circle at var(--pos-santo) 50%,
+          rgba(107, 21, 34, .95) 0%, rgba(246, 246, 244, .9) 34%, rgba(15, 74, 44, .95) 62%, transparent 82%),
+        radial-gradient(circle at var(--pos-adv) 50%, rgba(var(--cor-adv-rgb), .95) 0%, transparent 65%);
+      filter: blur(20px);
     }
     .confronto-time {
       display: flex;
@@ -286,10 +288,9 @@
     .confronto-grande .confronto-escudo { width: 72px; height: 72px; }
     .confronto-grande .confronto-time { width: 128px; }
     [data-bs-theme="dark"] .confronto {
-      background: rgba(30, 37, 41, .55);
-      border-color: rgba(255, 255, 255, .08);
+      background: rgba(255, 255, 255, .07);
+      border-color: rgba(255, 255, 255, .14);
     }
-    [data-bs-theme="dark"] .confronto::before { opacity: .5; }
     [data-bs-theme="dark"] .confronto-escudo {
       filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .5));
     }
@@ -328,16 +329,6 @@
     [data-bs-theme="dark"] .table-light > * { background: #1e2529; color: #e9edf0; }
     [data-bs-theme="dark"] .card-livre { opacity: .8; }
     [data-bs-theme="dark"] .btn-outline-secondary { color: #cfd6db; border-color: #3a444b; }
-    [data-bs-theme="dark"] .btn-outline-brand {
-      border-color: #e08a97;
-      color: #e08a97;
-    }
-    [data-bs-theme="dark"] .btn-outline-brand:hover { background: #e08a97; border-color: #e08a97; color: #1a1015; }
-    [data-bs-theme="dark"] .btn-outline-danger {
-      border-color: #ff6b6b;
-      color: #ff6b6b;
-    }
-    [data-bs-theme="dark"] .btn-outline-danger:hover { background: #ff6b6b; border-color: #ff6b6b; color: #1a1015; }
     [data-bs-theme="dark"] .btn-outline-warning-brand {
       border-color: var(--sao-dourado);
       color: #e0c157;
