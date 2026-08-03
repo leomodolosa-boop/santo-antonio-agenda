@@ -134,8 +134,16 @@
       opacity: 1;
       pointer-events: none;
     }
-    @media (max-width: 480px) {
-      .page-hero::after { display: none; }
+    @media (max-width: 576px) {
+      .page-hero::after {
+        width: 52px;
+        height: 52px;
+        top: 12px;
+        right: 12px;
+        transform: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,.35);
+      }
     }
     {% endif %}
     .page-hero .container { position: relative; z-index: 1; }
