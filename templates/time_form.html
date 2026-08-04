@@ -72,12 +72,16 @@
           </div>
           <div id="lista-enderecos-flutuante" class="time-picker-dropdown"></div>
         </div>
-        <input type="hidden" name="campo_mapa_url" id="campo_mapa_url_input" value="{{ time.campo_mapa_url or '' }}">
+        <div class="input-group mt-2">
+          <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+          <input type="url" class="form-control" name="campo_mapa_url" id="campo_mapa_url_input"
+                 value="{{ time.campo_mapa_url or '' }}" placeholder="Ou cole aqui um link do Google/Apple Maps">
+        </div>
         <div class="form-text" id="campo_mapa_status">
           {% if time.campo_mapa_url %}
             <i class="bi bi-check-circle-fill text-success"></i> Localização exata do campo salva.
           {% else %}
-            Escolha um resultado da lista pra salvar a localização exata do campo.
+            Escolha um resultado da lista, ou cole um link de "Compartilhar" do Google/Apple Maps ali em cima.
           {% endif %}
         </div>
       </div>
