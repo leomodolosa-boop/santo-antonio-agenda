@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.1.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -252,6 +252,7 @@ def salvar_escudo(arquivo, time_id, conn):
     imagem.save(caminho, "PNG")
     salvar_escudo_blob(conn, time_id, caminho)
     salvar_cor_escudo(conn, time_id, caminho)
+    conn.commit()
     return nome_arquivo
 
 
@@ -263,6 +264,7 @@ def salvar_foto_jogador(arquivo, jogador_id, conn):
     caminho = JOGADORES_DIR / nome_arquivo
     imagem.save(caminho, "PNG")
     salvar_foto_jogador_blob(conn, jogador_id, caminho)
+    conn.commit()
     return nome_arquivo
 
 MESES_PT = [

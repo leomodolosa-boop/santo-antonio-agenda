@@ -251,7 +251,9 @@ def get_conn():
 
 def salvar_escudo_blob(conn, time_id, caminho):
     """No Postgres, guarda o PNG do escudo dentro do banco (bytea) pra sobreviver
-    a redeploys, já que o disco do Render é apagado a cada atualização."""
+    a redeploys, já que o disco do Render é apagado a cada atualização.
+    Não dá commit — quem chama decide quando (bulk no init_db faz um commit
+    só no final, pra não multiplicar idas-e-voltas de rede)."""
     if not USANDO_POSTGRES:
         return
     dados = Path(caminho).read_bytes()
@@ -259,12 +261,11 @@ def salvar_escudo_blob(conn, time_id, caminho):
         "UPDATE times SET escudo_dados = ? WHERE id = ?",
         (psycopg2.Binary(dados), time_id),
     )
-    conn.commit()
 
 
 def salvar_foto_jogador_blob(conn, jogador_id, caminho):
     """Mesma ideia do escudo: guarda a foto do jogador no Postgres (bytea)
-    pra sobreviver a redeploys."""
+    pra sobreviver a redeploys. Também não dá commit sozinha."""
     if not USANDO_POSTGRES:
         return
     dados = Path(caminho).read_bytes()
@@ -272,7 +273,6 @@ def salvar_foto_jogador_blob(conn, jogador_id, caminho):
         "UPDATE jogadores SET foto_dados = ? WHERE id = ?",
         (psycopg2.Binary(dados), jogador_id),
     )
-    conn.commit()
 
 
 def cor_dominante_escudo(caminho):
@@ -297,10 +297,10 @@ def cor_dominante_escudo(caminho):
 
 
 def salvar_cor_escudo(conn, time_id, caminho):
+    """Também não dá commit — mesma razão das funções acima."""
     cor = cor_dominante_escudo(caminho)
     if cor:
         conn.execute("UPDATE times SET escudo_cor = ? WHERE id = ?", (cor, time_id))
-        conn.commit()
     return cor
 
 
