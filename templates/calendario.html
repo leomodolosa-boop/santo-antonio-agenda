@@ -273,6 +273,15 @@
                 {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
                 {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
                 {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
+                {% if tem_resultado %}
+                  {% if jogo.placar_santo > jogo.placar_adversario %}
+                    {% set resultado_time_fixo = 'vitoria' %}
+                  {% elif jogo.placar_santo == jogo.placar_adversario %}
+                    {% set resultado_time_fixo = 'empate' %}
+                  {% else %}
+                    {% set resultado_time_fixo = 'derrota' %}
+                  {% endif %}
+                {% endif %}
                 <button type="button" class="btn btn-sm btn-brand"
                   data-time-fixo="{{ time_a_nome }}"
                   data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ time_a_escudo) if time_a_escudo else '' }}"
@@ -285,6 +294,7 @@
                   {% if tem_resultado %}
                   data-placar-a="{{ placar_a }}"
                   data-placar-b="{{ placar_b }}"
+                  data-resultado="{{ resultado_time_fixo }}"
                   data-artilheiros='{{ artilheiros_por_jogo.get(jogo.id, []) | tojson }}'
                   {% endif %}
                   onclick="compartilharJogo(this)">

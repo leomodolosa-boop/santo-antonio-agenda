@@ -807,12 +807,18 @@
       ctx.stroke();
     }
 
-    async function agendaGerarImagemJogo({ timeFixo, escudoFixo, adversario, escudoAdversario, data, hora, local, placarA, placarB, artilheiros }) {
+    async function agendaGerarImagemJogo({ timeFixo, escudoFixo, adversario, escudoAdversario, data, hora, local, placarA, placarB, resultado, artilheiros }) {
       if (document.fonts && document.fonts.ready) {
         try { await document.fonts.ready; } catch (e) {}
       }
       const temResultado = placarA !== undefined && placarA !== null && placarA !== '' &&
         placarB !== undefined && placarB !== null && placarB !== '';
+      const CORES_RESULTADO = {
+        vitoria: { cor: '#1f9d55', texto: 'VITÓRIA' },
+        empate: { cor: '#8a8f96', texto: 'EMPATE' },
+        derrota: { cor: '#c0392b', texto: 'DERROTA' },
+      };
+      const infoResultado = CORES_RESULTADO[resultado] || null;
 
       const W = 1080, H = 1350;
       const canvas = document.createElement('canvas');
@@ -846,8 +852,8 @@
       ctx.font = '800 58px Inter, sans-serif';
       ctx.fillText(temResultado ? 'RESULTADO FINAL' : 'JOGO CONFIRMADO', W / 2, 112);
 
-      ctx.font = '600 26px Inter, sans-serif';
-      const subtitulo = 'FUTEBOL AMADOR VETERANO';
+      ctx.font = '800 26px Inter, sans-serif';
+      const subtitulo = infoResultado ? infoResultado.texto : 'FUTEBOL AMADOR VETERANO';
       const larguraSubtitulo = ctx.measureText(subtitulo).width;
       const pillW = larguraSubtitulo + 64;
       const pillH = 52;
@@ -855,7 +861,7 @@
       const pillY = 142;
       ctx.save();
       agendaRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
-      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      ctx.fillStyle = infoResultado ? infoResultado.cor : 'rgba(255,255,255,.14)';
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(255,255,255,.45)';
@@ -888,7 +894,7 @@
         ctx.shadowBlur = 16;
         ctx.shadowOffsetY = 4;
         agendaRoundRect(ctx, W / 2 - placarW / 2, H * faixaTopo - placarH / 2, placarW, placarH, placarH / 2);
-        ctx.fillStyle = '#c9a227';
+        ctx.fillStyle = infoResultado ? infoResultado.cor : '#c9a227';
         ctx.fill();
         ctx.restore();
         agendaRoundRect(ctx, W / 2 - placarW / 2 + 6, H * faixaTopo - placarH / 2 + 6, placarW - 12, placarH - 12, (placarH - 12) / 2);
@@ -1063,6 +1069,7 @@
           local: d.local,
           placarA: d.placarA,
           placarB: d.placarB,
+          resultado: d.resultado,
           artilheiros: artilheiros,
         });
         const nomeArquivo = 'jogo-' + d.adversario.replace(/\s+/g, '-').toLowerCase() + '.png';
@@ -1070,8 +1077,10 @@
         const textoArtilheiros = artilheiros.length
           ? '\n⚽ Gols: ' + artilheiros.map((a) => a.nome + (a.quantidade > 1 ? ' (' + a.quantidade + ')' : '')).join(', ')
           : '';
+        const ROTULO_RESULTADO = { vitoria: '🟢 VITÓRIA', empate: '⚪ EMPATE', derrota: '🔴 DERROTA' };
         const textoCompartilhar = (temResultado
-            ? 'Resultado final: ' + d.timeFixo + ' ' + d.placarA + ' x ' + d.placarB + ' ' + d.adversario
+            ? (ROTULO_RESULTADO[d.resultado] ? ROTULO_RESULTADO[d.resultado] + '! ' : '') +
+              'Resultado final: ' + d.timeFixo + ' ' + d.placarA + ' x ' + d.placarB + ' ' + d.adversario
             : 'Jogo confirmado: ' + d.timeFixo + ' x ' + d.adversario) +
           ' - ' + d.data +
           (d.hora ? ' as ' + d.hora : '') + (d.local ? ' - ' + d.local : '') +
