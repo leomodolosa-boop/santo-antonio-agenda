@@ -179,6 +179,24 @@
     .badge-confirmado { background: var(--sao-verde) !important; }
     .badge-pendente { background: var(--sao-dourado) !important; color: #3a2e00 !important; }
     .badge-cancelado { background: #9aa0a6 !important; }
+    .badge-temporada {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .55rem 1.1rem;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: .02em;
+      color: #3a2e00;
+      background: linear-gradient(135deg, #ffe9a8, #c9a227);
+      box-shadow: 0 4px 16px rgba(201, 162, 39, .45), inset 0 1px 0 rgba(255, 255, 255, .6);
+      border: 1px solid rgba(255, 255, 255, .4);
+    }
+    [data-bs-theme="dark"] .badge-temporada {
+      color: #2a2000;
+      box-shadow: 0 4px 18px rgba(201, 162, 39, .55), inset 0 1px 0 rgba(255, 255, 255, .5);
+    }
     .btn-outline-warning-brand {
       border-color: var(--sao-dourado);
       color: #7a6210;

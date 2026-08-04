@@ -4,8 +4,13 @@
 {% block hero %}
 <div class="page-hero">
   <div class="container">
-    <h1><i class="bi bi-trophy me-1"></i> Artilharia</h1>
-    <div class="subtitle">Ranking de gols — {{ time_fixo }} · Temporada {{ ano_atual }}</div>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div>
+        <h1><i class="bi bi-trophy me-1"></i> Artilharia</h1>
+        <div class="subtitle">Ranking de gols — {{ time_fixo }}</div>
+      </div>
+      <span class="badge-temporada"><i class="bi bi-calendar-event-fill"></i> Temporada {{ ano_atual }}</span>
+    </div>
   </div>
 </div>
 {% endblock %}
