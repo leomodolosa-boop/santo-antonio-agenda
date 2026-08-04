@@ -3,7 +3,7 @@ import functools
 import os
 import re
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, datetime, time as hora_tipo, timedelta
 from pathlib import Path
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -270,6 +270,24 @@ MESES_PT = [
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ]
 
+# Depois desse horário no dia do jogo, ele passa a contar como "encerrado"
+# (aguardando resultado) mesmo sem virar o dia — calculado na hora, sem
+# depender de nenhum agendador/cron rodando no horário certo.
+HORA_ENCERRAMENTO_JOGO = hora_tipo(18, 30)
+
+
+def jogo_aguardando_resultado(data_jogo_str, status, resultado_lancado):
+    if status == "cancelado" or resultado_lancado:
+        return False
+    data_jogo = date.fromisoformat(data_jogo_str)
+    agora = datetime.now()
+    if data_jogo < agora.date():
+        return True
+    return data_jogo == agora.date() and agora.time() >= HORA_ENCERRAMENTO_JOGO
+
+
+app.jinja_env.globals["jogo_aguardando_resultado"] = jogo_aguardando_resultado
+
 
 def sabados_do_mes(ano, mes):
     cal = calendar.Calendar()
@@ -281,7 +299,13 @@ def sabados_do_mes(ano, mes):
 
 def buscar_proximo_jogo():
     conn = get_db()
-    hoje = date.today().isoformat()
+    agora = datetime.now()
+    # Depois das 18:30, o jogo de hoje já é considerado encerrado e some
+    # do "próximo jogo" — passa a mostrar o de fato próximo.
+    if agora.time() >= HORA_ENCERRAMENTO_JOGO:
+        data_minima = (agora.date() + timedelta(days=1)).isoformat()
+    else:
+        data_minima = agora.date().isoformat()
     jogo = conn.execute(
         """
         SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
@@ -290,7 +314,7 @@ def buscar_proximo_jogo():
         ORDER BY jogos.data ASC
         LIMIT 1
         """,
-        (hoje,),
+        (data_minima,),
     ).fetchone()
     return jogo
 
@@ -615,14 +639,23 @@ def jogo_reabrir(jogo_id):
 @app.route("/historico")
 def historico():
     conn = get_db()
+    agora = datetime.now()
+    # Depois das 18:30 de sábado, o jogo do dia já entra no histórico
+    # (aguardando resultado) sem precisar esperar virar o dia.
+    if agora.time() >= HORA_ENCERRAMENTO_JOGO:
+        data_limite = agora.date().isoformat()
+        operador = "<="
+    else:
+        data_limite = agora.date().isoformat()
+        operador = "<"
     jogos = conn.execute(
-        """
+        f"""
         SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
         FROM jogos JOIN times ON times.id = jogos.adversario_id
-        WHERE jogos.data < ?
+        WHERE jogos.data {operador} ?
         ORDER BY jogos.data DESC
         """,
-        (date.today().isoformat(),),
+        (data_limite,),
     ).fetchall()
     return render_template("historico.html", jogos=jogos, time_fixo=TIME_FIXO)
 

@@ -177,9 +177,14 @@
           <div class="d-flex justify-content-between align-items-start mb-2">
             <h5 class="card-title mb-0"><i class="bi bi-calendar-event text-secondary me-1"></i> Sábado, {{ d.strftime('%d/%m/%Y') }}</h5>
             {% if jogo %}
-              {% set badge_class = 'badge-confirmado' if jogo.status == 'confirmado' else ('badge-pendente' if jogo.status == 'pendente' else 'badge-cancelado') %}
-              {% set status_label = 'Pendente de confirmação' if jogo.status == 'pendente' else jogo.status|capitalize %}
-              <span class="badge rounded-pill {{ badge_class }}">{{ status_label }}</span>
+              <div class="d-flex flex-column gap-1 align-items-end">
+                {% set badge_class = 'badge-confirmado' if jogo.status == 'confirmado' else ('badge-pendente' if jogo.status == 'pendente' else 'badge-cancelado') %}
+                {% set status_label = 'Pendente de confirmação' if jogo.status == 'pendente' else jogo.status|capitalize %}
+                <span class="badge rounded-pill {{ badge_class }}">{{ status_label }}</span>
+                {% if jogo_aguardando_resultado(jogo.data, jogo.status, jogo.resultado_lancado) %}
+                  <span class="badge rounded-pill badge-pendente"><i class="bi bi-hourglass-split"></i> Resultado pendente</span>
+                {% endif %}
+              </div>
             {% endif %}
           </div>
 
