@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from flask_wtf import CSRFProtect
+from PIL import Image, ImageOps
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -45,11 +46,11 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.4.1"
+APP_VERSION = "2.5.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
-EXTENSOES_PERMITIDAS = {"png"}
+EXTENSOES_PERMITIDAS = {"png", "jpg", "jpeg", "webp"}
 
 init_db()
 
@@ -221,10 +222,16 @@ def salvar_escudo(arquivo, time_id, conn):
         return None
     ext = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else ""
     if ext not in EXTENSOES_PERMITIDAS:
+        flash("Formato de imagem não suportado. Envie um arquivo PNG, JPG ou WEBP.")
+        return None
+    try:
+        imagem = ImageOps.exif_transpose(Image.open(arquivo.stream)).convert("RGBA")
+    except Exception:
+        flash("Não foi possível abrir essa imagem. Tente outro arquivo.")
         return None
     nome_arquivo = secure_filename(f"time_{time_id}.png")
     caminho = ESCUDOS_DIR / nome_arquivo
-    arquivo.save(caminho)
+    imagem.save(caminho, "PNG")
     salvar_escudo_blob(conn, time_id, caminho)
     salvar_cor_escudo(conn, time_id, caminho)
     return nome_arquivo
