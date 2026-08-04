@@ -362,8 +362,10 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'ativo',
                 foto TEXT,
                 foto_dados BYTEA,
-                data_cadastro TEXT NOT NULL
+                data_cadastro TEXT NOT NULL,
+                conta_estatisticas INTEGER NOT NULL DEFAULT 1
             );
+            ALTER TABLE jogadores ADD COLUMN IF NOT EXISTS conta_estatisticas INTEGER NOT NULL DEFAULT 1;
             CREATE TABLE IF NOT EXISTS gols (
                 id SERIAL PRIMARY KEY,
                 jogo_id INTEGER NOT NULL REFERENCES jogos(id) ON DELETE CASCADE,
@@ -420,7 +422,8 @@ def init_db():
                 numero_camisa INTEGER,
                 status TEXT NOT NULL DEFAULT 'ativo',
                 foto TEXT,
-                data_cadastro TEXT NOT NULL
+                data_cadastro TEXT NOT NULL,
+                conta_estatisticas INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS gols (
@@ -458,6 +461,11 @@ def init_db():
             conn.execute("ALTER TABLE jogos ADD COLUMN local_mapa_url TEXT")
         if "resultado_lancado" not in colunas_jogos:
             conn.execute("ALTER TABLE jogos ADD COLUMN resultado_lancado INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
+        colunas_jogadores = {row["name"] for row in conn.execute("PRAGMA table_info(jogadores)")}
+        if "conta_estatisticas" not in colunas_jogadores:
+            conn.execute("ALTER TABLE jogadores ADD COLUMN conta_estatisticas INTEGER NOT NULL DEFAULT 1")
         conn.commit()
 
     existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}

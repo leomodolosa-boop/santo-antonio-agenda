@@ -5,7 +5,7 @@
 <div class="page-hero">
   <div class="container">
     <h1><i class="bi bi-trophy me-1"></i> Artilharia</h1>
-    <div class="subtitle">Ranking de gols — {{ time_fixo }}</div>
+    <div class="subtitle">Ranking de gols — {{ time_fixo }} · Temporada {{ ano_atual }}</div>
   </div>
 </div>
 {% endblock %}
@@ -24,10 +24,16 @@
   <div class="card-body p-2 p-md-3">
     {% for j in ranking %}
       {% set posicao = loop.index %}
-      <div class="artilheiro-linha {{ 'artilheiro-podio' if posicao <= 3 else '' }}">
-        <div class="artilheiro-posicao {{ 'ouro' if posicao == 1 else ('prata' if posicao == 2 else ('bronze' if posicao == 3 else '')) }}">
-          {% if posicao <= 3 %}<i class="bi bi-trophy-fill"></i>{% else %}{{ posicao }}{% endif %}
-        </div>
+      <div class="artilheiro-linha {{ 'artilheiro-podio artilheiro-podio-' ~ posicao if posicao <= 3 else '' }}">
+        {% if posicao == 1 %}
+          <div class="artilheiro-medalha ouro">🥇</div>
+        {% elif posicao == 2 %}
+          <div class="artilheiro-medalha prata">🥈</div>
+        {% elif posicao == 3 %}
+          <div class="artilheiro-medalha bronze">🥉</div>
+        {% else %}
+          <div class="artilheiro-posicao">{{ posicao }}</div>
+        {% endif %}
         {% if j.foto %}
           <img class="escudo-circulo artilheiro-foto" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
         {% else %}

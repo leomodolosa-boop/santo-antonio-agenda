@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.1.1"
+APP_VERSION = "3.2.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -665,6 +665,11 @@ def historico():
 @app.route("/artilharia")
 def artilharia():
     conn = get_db()
+    ano_atual = date.today().year
+    # Ranking só da temporada corrente — vira o ano, os gols do ano anterior
+    # somem do ranking sozinhos (sem precisar apagar nada, é só o filtro de
+    # data do jogo). O histórico de cada temporada continua acessível no
+    # banco, só não entra na conta da temporada atual.
     ranking = conn.execute(
         """
         SELECT jogadores.id, jogadores.nome_completo, jogadores.apelido, jogadores.foto,
@@ -672,11 +677,14 @@ def artilharia():
                COUNT(DISTINCT gols.jogo_id) AS jogos_marcou
         FROM jogadores
         JOIN gols ON gols.jogador_id = jogadores.id
+        JOIN jogos ON jogos.id = gols.jogo_id
+        WHERE jogadores.conta_estatisticas = 1 AND jogos.data LIKE ?
         GROUP BY jogadores.id, jogadores.nome_completo, jogadores.apelido, jogadores.foto
         ORDER BY total_gols DESC, jogadores.nome_completo ASC
-        """
+        """,
+        (f"{ano_atual}-%",),
     ).fetchall()
-    return render_template("artilharia.html", ranking=ranking, time_fixo=TIME_FIXO)
+    return render_template("artilharia.html", ranking=ranking, time_fixo=TIME_FIXO, ano_atual=ano_atual)
 
 
 @app.route("/times", methods=["GET", "POST"])

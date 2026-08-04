@@ -226,30 +226,53 @@
       gap: 1rem;
       padding: .9rem .75rem;
       border-radius: 14px;
-      transition: background .15s ease;
+      transition: background .15s ease, transform .15s ease;
       flex-wrap: wrap;
+      position: relative;
     }
     .artilheiro-linha:hover { background: rgba(15, 74, 44, .05); }
     .artilheiro-linha:not(:last-child) { border-bottom: 1px solid #eef1f3; }
-    .artilheiro-podio { background: rgba(201, 162, 39, .06); }
+    .artilheiro-podio {
+      background: rgba(201, 162, 39, .07);
+      border-left: 4px solid transparent;
+    }
+    .artilheiro-podio-1 { border-left-color: #c9a227; background: rgba(255, 215, 106, .1); }
+    .artilheiro-podio-2 { border-left-color: #a8a8a8; background: rgba(200, 200, 200, .08); }
+    .artilheiro-podio-3 { border-left-color: #9c6530; background: rgba(215, 160, 103, .08); }
     .artilheiro-posicao {
       width: 36px; height: 36px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: .95rem; flex-shrink: 0;
       background: #eef1f3; color: var(--texto-suave);
     }
-    .artilheiro-posicao.ouro {
-      background: linear-gradient(135deg, #ffd76a, #c9a227); color: #4a3800;
-      box-shadow: 0 3px 10px rgba(201, 162, 39, .4);
+    .artilheiro-medalha {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+      position: relative;
+      filter: drop-shadow(0 3px 6px rgba(20, 20, 40, .3));
     }
-    .artilheiro-posicao.prata {
-      background: linear-gradient(135deg, #e7e7e7, #b9b9b9); color: #3a3a3a;
-      box-shadow: 0 3px 10px rgba(150, 150, 150, .35);
+    .artilheiro-medalha::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      z-index: -1;
     }
-    .artilheiro-posicao.bronze {
-      background: linear-gradient(135deg, #d7a067, #9c6530); color: #3a2210;
-      box-shadow: 0 3px 10px rgba(156, 101, 48, .35);
+    .artilheiro-medalha.ouro::before {
+      background: radial-gradient(circle at 35% 30%, #fff2c2, #ffd76a 45%, #c9a227 100%);
+      box-shadow: 0 3px 12px rgba(201, 162, 39, .55), inset 0 1px 2px rgba(255, 255, 255, .6);
     }
+    .artilheiro-medalha.prata::before {
+      background: radial-gradient(circle at 35% 30%, #ffffff, #e2e2e2 45%, #9c9c9c 100%);
+      box-shadow: 0 3px 12px rgba(120, 120, 120, .45), inset 0 1px 2px rgba(255, 255, 255, .7);
+    }
+    .artilheiro-medalha.bronze::before {
+      background: radial-gradient(circle at 35% 30%, #f0c49a, #d7a067 45%, #8a5a2c 100%);
+      box-shadow: 0 3px 12px rgba(140, 90, 40, .5), inset 0 1px 2px rgba(255, 255, 255, .5);
+    }
+    .artilheiro-linha.artilheiro-podio-1 .artilheiro-foto { width: 60px; height: 60px; }
+    .artilheiro-linha.artilheiro-podio-1 .artilheiro-info .fw-semibold { font-size: 1.08rem; }
     .artilheiro-foto { width: 52px; height: 52px; flex-shrink: 0; }
     .artilheiro-info { flex: 1 1 160px; min-width: 0; }
     .artilheiro-stats { display: flex; gap: 1.5rem; flex-shrink: 0; margin-left: auto; }
@@ -258,8 +281,10 @@
     .artilheiro-stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); }
     [data-bs-theme="dark"] .artilheiro-linha:not(:last-child) { border-bottom-color: #2c353b; }
     [data-bs-theme="dark"] .artilheiro-linha:hover { background: rgba(255, 255, 255, .04); }
-    [data-bs-theme="dark"] .artilheiro-podio { background: rgba(201, 162, 39, .1); }
-    [data-bs-theme="dark"] .artilheiro-posicao { background: #1e2529; color: #9aa4ab; }
+    [data-bs-theme="dark"] .artilheiro-podio-1 { background: rgba(255, 215, 106, .07); }
+    [data-bs-theme="dark"] .artilheiro-podio-2 { background: rgba(200, 200, 200, .06); }
+    [data-bs-theme="dark"] .artilheiro-podio-3 { background: rgba(215, 160, 103, .06); }
+    [data-bs-theme="dark"] .artilheiro-posicao:not(.ouro):not(.prata):not(.bronze) { background: #1e2529; color: #9aa4ab; }
     [data-bs-theme="dark"] .artilheiro-stat-valor { color: #6bcf8f; }
 
     /* ---------- Lista de times no celular (sem precisar arrastar pro lado) ---------- */
