@@ -6,7 +6,7 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
 from flask_wtf import CSRFProtect
 from PIL import Image, ImageOps
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -46,7 +46,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.9.0"
+APP_VERSION = "2.10.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -55,15 +55,31 @@ EXTENSOES_PERMITIDAS = {"png", "jpg", "jpeg", "webp"}
 init_db()
 
 
+def get_db():
+    """Uma única conexão por requisição — abrir uma nova por consulta é caro
+    demais com o Postgres remoto (cada conexão custa uma rodada extra de
+    handshake pela rede, e uma página chega a fazer 5-6 consultas)."""
+    if "db" not in g:
+        g.db = get_conn()
+    return g.db
+
+
+@app.teardown_appcontext
+def fechar_db(exception=None):
+    conn = g.pop("db", None)
+    if conn is not None:
+        conn.close()
+
+
 def usuario_logado():
     if "usuario_id" not in session:
         return None
-    conn = get_conn()
-    usuario = conn.execute(
-        "SELECT id, nome, usuario, perfil FROM usuarios WHERE id = ?", (session["usuario_id"],)
-    ).fetchone()
-    conn.close()
-    return usuario
+    if "usuario_atual" not in g:
+        conn = get_db()
+        g.usuario_atual = conn.execute(
+            "SELECT id, nome, usuario, perfil FROM usuarios WHERE id = ?", (session["usuario_id"],)
+        ).fetchone()
+    return g.usuario_atual
 
 
 def master_obrigatorio(funcao):
@@ -88,10 +104,9 @@ def hex_para_rgb(cor_hex):
 
 @app.context_processor
 def injetar_contexto_global():
-    conn = get_conn()
+    conn = get_db()
     usuario = usuario_logado()
     row_escudo = conn.execute("SELECT escudo, escudo_cor FROM times WHERE is_fixo = 1").fetchone()
-    conn.close()
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
@@ -103,9 +118,8 @@ def injetar_contexto_global():
 
 @app.route("/configurar-master", methods=["GET", "POST"])
 def configurar_master():
-    conn = get_conn()
+    conn = get_db()
     if conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
-        conn.close()
         return redirect(url_for("login"))
 
     erro = None
@@ -129,21 +143,18 @@ def configurar_master():
             usuario_criado = conn.execute(
                 "SELECT id FROM usuarios WHERE usuario = ?", (usuario_login,)
             ).fetchone()
-            conn.close()
             session.clear()
             session.permanent = True
             session["usuario_id"] = usuario_criado["id"]
             return redirect(url_for("index"))
 
-    conn.close()
     return render_template("configurar_master.html", erro=erro)
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    conn = get_conn()
+    conn = get_db()
     if not conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
-        conn.close()
         return redirect(url_for("configurar_master"))
 
     erro = None
@@ -157,12 +168,10 @@ def login():
             session.clear()
             session.permanent = True
             session["usuario_id"] = usuario_row["id"]
-            conn.close()
             destino = request.form.get("proximo") or url_for("index")
             return redirect(destino)
         erro = "Usuário ou senha inválidos."
 
-    conn.close()
     return render_template("login.html", erro=erro, proximo=request.args.get("proximo", ""))
 
 
@@ -175,7 +184,7 @@ def logout():
 @app.route("/usuarios", methods=["GET", "POST"])
 @master_obrigatorio
 def usuarios():
-    conn = get_conn()
+    conn = get_db()
     erro = None
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()
@@ -200,7 +209,6 @@ def usuarios():
                 erro = "Já existe um usuário com esse login."
 
     lista = conn.execute("SELECT * FROM usuarios ORDER BY nome").fetchall()
-    conn.close()
     return render_template("usuarios.html", usuarios=lista, erro=erro)
 
 
@@ -210,10 +218,9 @@ def usuarios_excluir(usuario_id):
     if usuario_id == session.get("usuario_id"):
         flash("Você não pode excluir seu próprio usuário enquanto estiver logado com ele.")
         return redirect(url_for("usuarios"))
-    conn = get_conn()
+    conn = get_db()
     conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
     conn.commit()
-    conn.close()
     return redirect(url_for("usuarios"))
 
 
@@ -251,7 +258,7 @@ def sabados_do_mes(ano, mes):
 
 
 def buscar_proximo_jogo():
-    conn = get_conn()
+    conn = get_db()
     hoje = date.today().isoformat()
     jogo = conn.execute(
         """
@@ -263,19 +270,17 @@ def buscar_proximo_jogo():
         """,
         (hoje,),
     ).fetchone()
-    conn.close()
     return jogo
 
 
 def calcular_aproveitamento():
-    conn = get_conn()
+    conn = get_db()
     linhas = conn.execute(
         """
         SELECT placar_santo, placar_adversario FROM jogos
         WHERE placar_santo IS NOT NULL AND placar_adversario IS NOT NULL
         """
     ).fetchall()
-    conn.close()
 
     vitorias = empates = derrotas = 0
     gols_pro = gols_contra = 0
@@ -305,18 +310,20 @@ def calcular_aproveitamento():
 
 
 def proximo_sabado_sem_jogo():
-    conn = get_conn()
+    conn = get_db()
     hoje = date.today()
     dias_ate_sabado = (5 - hoje.weekday()) % 7
     candidato = hoje + timedelta(days=dias_ate_sabado)
-    while True:
-        jogo = conn.execute(
-            "SELECT id FROM jogos WHERE data = ?", (candidato.isoformat(),)
-        ).fetchone()
-        if not jogo:
-            conn.close()
-            return candidato
+    # Uma única consulta trazendo todas as datas futuras já ocupadas, em vez
+    # de uma consulta por semana até achar uma livre.
+    datas_ocupadas = {
+        row["data"] for row in conn.execute(
+            "SELECT data FROM jogos WHERE data >= ?", (candidato.isoformat(),)
+        ).fetchall()
+    }
+    while candidato.isoformat() in datas_ocupadas:
         candidato += timedelta(days=7)
+    return candidato
 
 
 @app.route("/")
@@ -334,22 +341,23 @@ def service_worker():
 
 @app.route("/calendario/<int:ano>/<int:mes>")
 def calendario(ano, mes):
-    conn = get_conn()
+    conn = get_db()
     sabados = sabados_do_mes(ano, mes)
 
+    # Uma única consulta pra todos os sábados do mês, em vez de uma por
+    # sábado — cada ida-e-volta ao Postgres remoto custa ~200-300ms.
     jogos_por_data = {}
-    for d in sabados:
-        row = conn.execute(
-            """
+    if sabados:
+        marcadores = ", ".join(["?"] * len(sabados))
+        linhas = conn.execute(
+            f"""
             SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
             FROM jogos JOIN times ON times.id = jogos.adversario_id
-            WHERE jogos.data = ?
+            WHERE jogos.data IN ({marcadores})
             """,
-            (d.isoformat(),),
-        ).fetchone()
-        if row:
-            jogos_por_data[d.isoformat()] = row
-    conn.close()
+            tuple(d.isoformat() for d in sabados),
+        ).fetchall()
+        jogos_por_data = {linha["data"]: linha for linha in linhas}
 
     prev_mes = mes - 1 if mes > 1 else 12
     prev_ano = ano if mes > 1 else ano - 1
@@ -386,7 +394,7 @@ def calendario(ano, mes):
 @app.route("/jogo/novo", methods=["GET", "POST"])
 @master_obrigatorio
 def jogo_novo():
-    conn = get_conn()
+    conn = get_db()
     data_str = request.values.get("data") or proximo_sabado_sem_jogo().isoformat()
 
     if request.method == "POST":
@@ -418,13 +426,11 @@ def jogo_novo():
 
         if not erro:
             d = date.fromisoformat(nova_data)
-            conn.close()
             return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
         adversarios = conn.execute(
             "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
         ).fetchall()
-        conn.close()
         template = "jogo_form_conteudo.html" if request.form.get("modal") == "1" else "jogo_form.html"
         return render_template(
             template,
@@ -438,7 +444,6 @@ def jogo_novo():
     adversarios = conn.execute(
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
-    conn.close()
     template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
         template,
@@ -452,11 +457,10 @@ def jogo_novo():
 @app.route("/jogo/<int:jogo_id>/editar", methods=["GET", "POST"])
 @master_obrigatorio
 def jogo_editar(jogo_id):
-    conn = get_conn()
+    conn = get_db()
 
     jogo_existente = conn.execute("SELECT * FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
     if not jogo_existente:
-        conn.close()
         abort(404)
 
     if request.method == "POST":
@@ -464,7 +468,6 @@ def jogo_editar(jogo_id):
             conn.execute("DELETE FROM jogos WHERE id = ?", (jogo_id,))
             conn.commit()
             d = date.fromisoformat(jogo_existente["data"])
-            conn.close()
             return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
         adversario_id = request.form["adversario_id"]
@@ -504,7 +507,6 @@ def jogo_editar(jogo_id):
             jogo_atual = dict(request.form)
             jogo_atual["id"] = jogo_id
             jogo_atual["adversario_id"] = int(adversario_id)
-            conn.close()
             template = "jogo_form_conteudo.html" if request.form.get("modal") == "1" else "jogo_form.html"
             return render_template(
                 template,
@@ -516,13 +518,11 @@ def jogo_editar(jogo_id):
             )
 
         d = date.fromisoformat(nova_data)
-        conn.close()
         return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
     adversarios = conn.execute(
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
-    conn.close()
     template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
         template,
@@ -534,14 +534,12 @@ def jogo_editar(jogo_id):
 
 
 def _mudar_status_jogo(jogo_id, novo_status):
-    conn = get_conn()
+    conn = get_db()
     jogo = conn.execute("SELECT data FROM jogos WHERE id = ?", (jogo_id,)).fetchone()
     if not jogo:
-        conn.close()
         abort(404)
     conn.execute("UPDATE jogos SET status = ? WHERE id = ?", (novo_status, jogo_id))
     conn.commit()
-    conn.close()
     d = date.fromisoformat(jogo["data"])
     return redirect(url_for("calendario", ano=d.year, mes=d.month))
 
@@ -566,7 +564,7 @@ def jogo_reabrir(jogo_id):
 
 @app.route("/historico")
 def historico():
-    conn = get_conn()
+    conn = get_db()
     jogos = conn.execute(
         """
         SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
@@ -576,17 +574,15 @@ def historico():
         """,
         (date.today().isoformat(),),
     ).fetchall()
-    conn.close()
     return render_template("historico.html", jogos=jogos, time_fixo=TIME_FIXO)
 
 
 @app.route("/times", methods=["GET", "POST"])
 def times():
-    conn = get_conn()
+    conn = get_db()
     if request.method == "POST":
         usuario = usuario_logado()
         if not usuario or usuario["perfil"] != "master":
-            conn.close()
             flash("Você precisa entrar como administrador para fazer isso.")
             return redirect(url_for("login", proximo=request.full_path))
         nome = request.form.get("nome", "").strip()
@@ -628,17 +624,15 @@ def times():
                     conn.commit()
 
     lista = conn.execute("SELECT * FROM times ORDER BY is_fixo DESC, nome").fetchall()
-    conn.close()
     return render_template("times.html", times=lista)
 
 
 @app.route("/times/<int:time_id>/editar", methods=["GET", "POST"])
 @master_obrigatorio
 def times_editar(time_id):
-    conn = get_conn()
+    conn = get_db()
 
     if not conn.execute("SELECT 1 FROM times WHERE id = ?", (time_id,)).fetchone():
-        conn.close()
         abort(404)
 
     if request.method == "POST":
@@ -663,21 +657,18 @@ def times_editar(time_id):
             time_row = conn.execute("SELECT is_fixo FROM times WHERE id = ?", (time_id,)).fetchone()
             if time_row and time_row["is_fixo"]:
                 gerar_icones_pwa(ESCUDOS_DIR / escudo)
-        conn.close()
         return redirect(url_for("times"))
 
     time_row = conn.execute("SELECT * FROM times WHERE id = ?", (time_id,)).fetchone()
-    conn.close()
     return render_template("time_form.html", time=time_row)
 
 
 @app.route("/times/<int:time_id>/excluir", methods=["POST"])
 @master_obrigatorio
 def times_excluir(time_id):
-    conn = get_conn()
+    conn = get_db()
     time_row = conn.execute("SELECT is_fixo, nome FROM times WHERE id = ?", (time_id,)).fetchone()
     if not time_row:
-        conn.close()
         abort(404)
 
     if time_row["is_fixo"]:
@@ -691,7 +682,6 @@ def times_excluir(time_id):
         else:
             conn.execute("DELETE FROM times WHERE id = ?", (time_id,))
             conn.commit()
-    conn.close()
     return redirect(url_for("times"))
 
 
