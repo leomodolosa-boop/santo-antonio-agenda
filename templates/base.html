@@ -827,7 +827,8 @@
         const nomeArquivo = 'jogo-' + d.adversario.replace(/\s+/g, '-').toLowerCase() + '.png';
         const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
         const textoCompartilhar = 'Jogo confirmado: ' + d.timeFixo + ' x ' + d.adversario + ' - ' + d.data +
-          (d.hora ? ' as ' + d.hora : '') + (d.local ? ' - ' + d.local : '');
+          (d.hora ? ' as ' + d.hora : '') + (d.local ? ' - ' + d.local : '') +
+          (d.localMapaUrl ? '\n📍 ' + d.localMapaUrl : '');
 
         if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
           await navigator.share({ files: [arquivo], title: 'Jogo confirmado', text: textoCompartilhar });

@@ -212,7 +212,16 @@
               {{ 'Jogo em casa' if mandante_casa else 'Jogo fora' }}
             </p>
             {% if jogo.hora %}<p class="mb-1 text-secondary small"><i class="bi bi-clock"></i> {{ jogo.hora }}</p>{% endif %}
-            {% if jogo.local %}<p class="mb-1 text-secondary small"><i class="bi bi-geo-alt"></i> {{ jogo.local }}</p>{% endif %}
+            {% if jogo.local %}
+              <p class="mb-1 text-secondary small">
+                <i class="bi bi-geo-alt"></i>
+                {% if jogo.local_mapa_url %}
+                  <a href="{{ jogo.local_mapa_url }}" target="_blank" rel="noopener" class="text-secondary">{{ jogo.local }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                {% else %}
+                  {{ jogo.local }}
+                {% endif %}
+              </p>
+            {% endif %}
             {% if jogo.placar_santo is not none and jogo.placar_adversario is not none %}
               <p class="mb-1">Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong></p>
             {% endif %}
@@ -232,6 +241,7 @@
                   data-data="{{ d.strftime('%d/%m/%Y') }}"
                   data-hora="{{ jogo.hora or '' }}"
                   data-local="{{ jogo.local or '' }}"
+                  data-local-mapa-url="{{ jogo.local_mapa_url or '' }}"
                   onclick="compartilharJogo(this)">
                   <i class="bi bi-share"></i> Compartilhar
                 </button>

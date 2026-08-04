@@ -318,11 +318,13 @@ def init_db():
                 adversario_id INTEGER NOT NULL REFERENCES times(id),
                 mandante TEXT NOT NULL DEFAULT 'casa',
                 local TEXT,
+                local_mapa_url TEXT,
                 status TEXT NOT NULL DEFAULT 'confirmado',
                 placar_santo INTEGER,
                 placar_adversario INTEGER,
                 observacao TEXT
             );
+            ALTER TABLE jogos ADD COLUMN IF NOT EXISTS local_mapa_url TEXT;
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
                 nome TEXT NOT NULL,
@@ -354,6 +356,7 @@ def init_db():
                 adversario_id INTEGER NOT NULL REFERENCES times(id),
                 mandante TEXT NOT NULL DEFAULT 'casa',
                 local TEXT,
+                local_mapa_url TEXT,
                 status TEXT NOT NULL DEFAULT 'confirmado',
                 placar_santo INTEGER,
                 placar_adversario INTEGER,
@@ -388,6 +391,8 @@ def init_db():
             conn.execute("ALTER TABLE jogos ADD COLUMN hora TEXT")
         if "mandante" not in colunas_jogos:
             conn.execute("ALTER TABLE jogos ADD COLUMN mandante TEXT NOT NULL DEFAULT 'casa'")
+        if "local_mapa_url" not in colunas_jogos:
+            conn.execute("ALTER TABLE jogos ADD COLUMN local_mapa_url TEXT")
         conn.commit()
 
     existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}

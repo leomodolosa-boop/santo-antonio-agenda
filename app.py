@@ -46,7 +46,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.6.0"
+APP_VERSION = "2.7.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -394,6 +394,7 @@ def jogo_novo():
         mandante = request.form.get("mandante", "casa")
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
+        local_mapa_url = request.form.get("local_mapa_url", "").strip()
         observacao = request.form.get("observacao", "").strip()
         nova_data = request.form.get("data", "")
 
@@ -406,10 +407,10 @@ def jogo_novo():
             try:
                 conn.execute(
                     """
-                    INSERT INTO jogos (data, hora, adversario_id, mandante, local, status, observacao)
-                    VALUES (?, ?, ?, ?, ?, 'pendente', ?)
+                    INSERT INTO jogos (data, hora, adversario_id, mandante, local, local_mapa_url, status, observacao)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?)
                     """,
-                    (nova_data, hora, adversario_id, mandante, local, observacao),
+                    (nova_data, hora, adversario_id, mandante, local, local_mapa_url or None, observacao),
                 )
                 conn.commit()
             except (sqlite3.IntegrityError, ErroIntegridade):
@@ -471,6 +472,7 @@ def jogo_editar(jogo_id):
         nova_data = request.form["data"]
         hora = request.form.get("hora", "").strip()
         local = request.form.get("local", "").strip()
+        local_mapa_url = request.form.get("local_mapa_url", "").strip()
         observacao = request.form.get("observacao", "").strip()
         status = request.form.get("status", "confirmado")
         placar_santo = request.form.get("placar_santo") or None
@@ -484,11 +486,11 @@ def jogo_editar(jogo_id):
                 conn.execute(
                     """
                     UPDATE jogos
-                    SET adversario_id = ?, mandante = ?, data = ?, hora = ?, local = ?, observacao = ?, status = ?,
-                        placar_santo = ?, placar_adversario = ?
+                    SET adversario_id = ?, mandante = ?, data = ?, hora = ?, local = ?, local_mapa_url = ?,
+                        observacao = ?, status = ?, placar_santo = ?, placar_adversario = ?
                     WHERE id = ?
                     """,
-                    (adversario_id, mandante, nova_data, hora, local, observacao, status,
+                    (adversario_id, mandante, nova_data, hora, local, local_mapa_url or None, observacao, status,
                      placar_santo, placar_adversario, jogo_id),
                 )
                 conn.commit()
