@@ -157,7 +157,7 @@ def _iniciais_time(nome):
 def gerar_escudo_padrao(nome, indice, caminho_saida):
     """Gera um escudo simples e provisório (formato e cor variam por time),
     só pra não ficar sem imagem nenhuma até o usuário subir o escudo real."""
-    tamanho = 400
+    tamanho = 640
     cor = PALETA_ESCUDOS[indice % len(PALETA_ESCUDOS)]
     estilo = indice % 4
     img = Image.new("RGBA", (tamanho, tamanho), (0, 0, 0, 0))
