@@ -253,8 +253,30 @@
                 {% endif %}
               </p>
             {% endif %}
-            {% if jogo.placar_santo is not none and jogo.placar_adversario is not none %}
-              <p class="mb-1">Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong></p>
+            {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
+            {% if tem_resultado %}
+              {% if jogo.placar_santo > jogo.placar_adversario %}
+                {% set resultado_time_fixo = 'vitoria' %}
+                {% set resultado_label = 'Vitória' %}
+              {% elif jogo.placar_santo == jogo.placar_adversario %}
+                {% set resultado_time_fixo = 'empate' %}
+                {% set resultado_label = 'Empate' %}
+              {% else %}
+                {% set resultado_time_fixo = 'derrota' %}
+                {% set resultado_label = 'Derrota' %}
+              {% endif %}
+              <p class="mb-1 d-flex align-items-center gap-2 flex-wrap">
+                Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong>
+                <span class="badge rounded-pill badge-{{ resultado_time_fixo }}">{{ resultado_label }}</span>
+              </p>
+              {% if artilheiros_por_jogo.get(jogo.id) %}
+                <p class="mb-1 text-secondary small">
+                  <i class="bi bi-dribbble"></i> Gols:
+                  {%- for a in artilheiros_por_jogo[jogo.id] %}
+                    {{ a.nome }}{% if a.quantidade > 1 %} ({{ a.quantidade }}){% endif %}{{ ',' if not loop.last }}
+                  {%- endfor %}
+                </p>
+              {% endif %}
             {% endif %}
             {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
             <div class="d-flex gap-2 mt-2 flex-wrap">
@@ -270,18 +292,8 @@
                 </button>
               {% endif %}
               {% if jogo.status == 'confirmado' %}
-                {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
                 {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
                 {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
-                {% if tem_resultado %}
-                  {% if jogo.placar_santo > jogo.placar_adversario %}
-                    {% set resultado_time_fixo = 'vitoria' %}
-                  {% elif jogo.placar_santo == jogo.placar_adversario %}
-                    {% set resultado_time_fixo = 'empate' %}
-                  {% else %}
-                    {% set resultado_time_fixo = 'derrota' %}
-                  {% endif %}
-                {% endif %}
                 <button type="button" class="btn btn-sm btn-brand"
                   data-time-fixo="{{ time_a_nome }}"
                   data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ time_a_escudo) if time_a_escudo else '' }}"
