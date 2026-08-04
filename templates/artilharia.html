@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Artilharia{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-trophy me-1"></i> Artilharia</h1>
+    <div class="subtitle">Ranking de gols — {{ time_fixo }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if not ranking %}
+  <div class="card">
+    <div class="card-body text-center text-muted py-5">
+      <i class="bi bi-trophy fs-1 d-block mb-2"></i>
+      Ninguém marcou gol ainda nessa temporada.
+    </div>
+  </div>
+{% else %}
+<div class="card">
+  <div class="card-body p-2 p-md-3">
+    {% for j in ranking %}
+      {% set posicao = loop.index %}
+      <div class="artilheiro-linha {{ 'artilheiro-podio' if posicao <= 3 else '' }}">
+        <div class="artilheiro-posicao {{ 'ouro' if posicao == 1 else ('prata' if posicao == 2 else ('bronze' if posicao == 3 else '')) }}">
+          {% if posicao <= 3 %}<i class="bi bi-trophy-fill"></i>{% else %}{{ posicao }}{% endif %}
+        </div>
+        {% if j.foto %}
+          <img class="escudo-circulo artilheiro-foto" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
+        {% else %}
+          <span class="escudo-placeholder-circulo artilheiro-foto"><i class="bi bi-person"></i></span>
+        {% endif %}
+        <div class="artilheiro-info">
+          <div class="fw-semibold">{{ j.apelido or j.nome_completo }}</div>
+          {% if j.apelido %}<div class="text-secondary small">{{ j.nome_completo }}</div>{% endif %}
+        </div>
+        <div class="artilheiro-stats">
+          <div class="artilheiro-stat">
+            <div class="artilheiro-stat-valor">{{ j.total_gols }}</div>
+            <div class="artilheiro-stat-label">Gols</div>
+          </div>
+          <div class="artilheiro-stat">
+            <div class="artilheiro-stat-valor">{{ j.jogos_marcou }}</div>
+            <div class="artilheiro-stat-label">Jogos</div>
+          </div>
+          <div class="artilheiro-stat d-none d-sm-flex">
+            <div class="artilheiro-stat-valor">{{ (j.total_gols / j.jogos_marcou) | round(1) }}</div>
+            <div class="artilheiro-stat-label">Média</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

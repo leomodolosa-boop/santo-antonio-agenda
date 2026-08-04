@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Editar jogador — {{ jogador.nome_completo }}{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-pencil-square me-1"></i> {{ jogador.apelido or jogador.nome_completo }}</h1>
+    <div class="subtitle">Editar cadastro do jogador</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-body p-4">
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row mb-4 align-items-center">
+        <div class="col-md-3 text-center">
+          {% if jogador.foto %}
+            <img src="{{ url_for('static', filename='jogadores/' ~ jogador.foto) }}" alt="Foto de {{ jogador.nome_completo }}"
+                 class="escudo-circulo mx-auto" style="width:96px;height:96px;padding:6px">
+          {% else %}
+            <span class="escudo-placeholder-circulo mx-auto" style="width:96px;height:96px;font-size:2.2rem"><i class="bi bi-person"></i></span>
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <label class="form-label">{{ 'Trocar foto' if jogador.foto else 'Enviar foto' }} (PNG, JPG ou WEBP)</label>
+          <input type="file" class="form-control" name="foto" accept="image/png, image/jpeg, image/webp">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Nome completo</label>
+          <input type="text" class="form-control" name="nome_completo" value="{{ jogador.nome_completo }}" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Apelido <span class="text-muted small fw-normal">(opcional)</span></label>
+          <input type="text" class="form-control" name="apelido" value="{{ jogador.apelido or '' }}">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Posição</label>
+          <select class="form-select" name="posicao">
+            <option value="">Sem posição</option>
+            {% for p in posicoes %}
+              <option value="{{ p }}" {% if jogador.posicao == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Número da camisa <span class="text-muted small fw-normal">(opcional)</span></label>
+          <input type="number" min="0" max="999" class="form-control" name="numero_camisa" value="{{ jogador.numero_camisa or '' }}">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" name="status">
+            <option value="ativo" {% if jogador.status == 'ativo' %}selected{% endif %}>Ativo</option>
+            <option value="inativo" {% if jogador.status == 'inativo' %}selected{% endif %}>Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-text mb-4">Cadastrado em {{ jogador.data_cadastro[8:10] }}/{{ jogador.data_cadastro[5:7] }}/{{ jogador.data_cadastro[0:4] }}.</div>
+
+      <div class="d-flex justify-content-between border-top pt-3">
+        <a href="{{ url_for('jogadores') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <button type="submit" class="btn btn-brand"><i class="bi bi-check-lg"></i> Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

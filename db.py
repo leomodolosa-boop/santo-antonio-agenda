@@ -21,6 +21,7 @@ class ErroIntegridade(Exception):
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "agenda_futebol.db"
 ESCUDOS_DIR = BASE_DIR / "static" / "escudos"
+JOGADORES_DIR = BASE_DIR / "static" / "jogadores"
 ICONS_DIR = BASE_DIR / "static" / "icons"
 BRAND_ESCUDO_OFICIAL = BASE_DIR / "static" / "brand" / "escudo_oficial.png"
 
@@ -261,6 +262,19 @@ def salvar_escudo_blob(conn, time_id, caminho):
     conn.commit()
 
 
+def salvar_foto_jogador_blob(conn, jogador_id, caminho):
+    """Mesma ideia do escudo: guarda a foto do jogador no Postgres (bytea)
+    pra sobreviver a redeploys."""
+    if not USANDO_POSTGRES:
+        return
+    dados = Path(caminho).read_bytes()
+    conn.execute(
+        "UPDATE jogadores SET foto_dados = ? WHERE id = ?",
+        (psycopg2.Binary(dados), jogador_id),
+    )
+    conn.commit()
+
+
 def cor_dominante_escudo(caminho):
     """Cor média do escudo (ignorando pixels transparentes), usada como acento
     visual do time nos cards de jogo. Retorna None se não conseguir ler a imagem."""
@@ -326,9 +340,11 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'confirmado',
                 placar_santo INTEGER,
                 placar_adversario INTEGER,
-                observacao TEXT
+                observacao TEXT,
+                resultado_lancado INTEGER NOT NULL DEFAULT 0
             );
             ALTER TABLE jogos ADD COLUMN IF NOT EXISTS local_mapa_url TEXT;
+            ALTER TABLE jogos ADD COLUMN IF NOT EXISTS resultado_lancado INTEGER NOT NULL DEFAULT 0;
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
                 nome TEXT NOT NULL,
@@ -336,6 +352,24 @@ def init_db():
                 usuario TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
                 perfil TEXT NOT NULL DEFAULT 'visualizacao'
+            );
+            CREATE TABLE IF NOT EXISTS jogadores (
+                id SERIAL PRIMARY KEY,
+                nome_completo TEXT NOT NULL,
+                apelido TEXT,
+                posicao TEXT,
+                numero_camisa INTEGER,
+                status TEXT NOT NULL DEFAULT 'ativo',
+                foto TEXT,
+                foto_dados BYTEA,
+                data_cadastro TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS gols (
+                id SERIAL PRIMARY KEY,
+                jogo_id INTEGER NOT NULL REFERENCES jogos(id) ON DELETE CASCADE,
+                jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
+                quantidade INTEGER NOT NULL DEFAULT 1,
+                UNIQUE(jogo_id, jogador_id)
             );
             """
         )
@@ -377,6 +411,25 @@ def init_db():
                 senha_hash TEXT NOT NULL,
                 perfil TEXT NOT NULL DEFAULT 'visualizacao'
             );
+
+            CREATE TABLE IF NOT EXISTS jogadores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_completo TEXT NOT NULL,
+                apelido TEXT,
+                posicao TEXT,
+                numero_camisa INTEGER,
+                status TEXT NOT NULL DEFAULT 'ativo',
+                foto TEXT,
+                data_cadastro TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS gols (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                jogo_id INTEGER NOT NULL REFERENCES jogos(id) ON DELETE CASCADE,
+                jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
+                quantidade INTEGER NOT NULL DEFAULT 1,
+                UNIQUE(jogo_id, jogador_id)
+            );
             """
         )
         conn.commit()
@@ -403,6 +456,8 @@ def init_db():
             conn.execute("ALTER TABLE jogos ADD COLUMN mandante TEXT NOT NULL DEFAULT 'casa'")
         if "local_mapa_url" not in colunas_jogos:
             conn.execute("ALTER TABLE jogos ADD COLUMN local_mapa_url TEXT")
+        if "resultado_lancado" not in colunas_jogos:
+            conn.execute("ALTER TABLE jogos ADD COLUMN resultado_lancado INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
     existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}
@@ -468,6 +523,31 @@ def init_db():
                 gerar_icones_pwa(caminho)
             if precisa_cor:
                 salvar_cor_escudo(conn, time_row["id"], caminho)
+
+    # Restaura (ou gera) as fotos dos jogadores do mesmo jeito que os
+    # escudos — mesmo problema do disco efêmero do Render.
+    JOGADORES_DIR.mkdir(parents=True, exist_ok=True)
+    campo_blob_jogador = ", foto_dados" if USANDO_POSTGRES else ""
+    todos_jogadores = conn.execute(
+        f"SELECT id, nome_completo, foto{campo_blob_jogador} FROM jogadores ORDER BY id"
+    ).fetchall()
+    for jogador_row in todos_jogadores:
+        nome_arquivo = jogador_row["foto"]
+        blob = jogador_row["foto_dados"] if USANDO_POSTGRES else None
+        if nome_arquivo:
+            caminho = JOGADORES_DIR / nome_arquivo
+            if not caminho.exists():
+                if blob is not None:
+                    Path(caminho).write_bytes(bytes(blob))
+                else:
+                    gerar_escudo_padrao(jogador_row["nome_completo"], jogador_row["id"], caminho)
+                    salvar_foto_jogador_blob(conn, jogador_row["id"], caminho)
+        else:
+            nome_arquivo = f"jogador_{jogador_row['id']}.png"
+            caminho = JOGADORES_DIR / nome_arquivo
+            gerar_escudo_padrao(jogador_row["nome_completo"], jogador_row["id"], caminho)
+            conn.execute("UPDATE jogadores SET foto = ? WHERE id = ?", (nome_arquivo, jogador_row["id"]))
+            salvar_foto_jogador_blob(conn, jogador_row["id"], caminho)
 
     ids_times = {row["nome"]: row["id"] for row in todos_times}
     linhas = [

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Jogadores{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-person-badge me-1"></i> Elenco</h1>
+    <div class="subtitle">{{ jogadores|length }} jogadores cadastrados</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if eh_master %}
+<div class="card mb-4">
+  <div class="card-body p-4">
+    <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo jogador</h5>
+    <p class="text-muted small mb-3">Depois de adicionar, use "Editar" na lista para completar foto, apelido e número.</p>
+    <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-4">
+        <input type="text" class="form-control" name="nome_completo" placeholder="Nome completo" required>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" name="posicao">
+          <option value="">Posição</option>
+          {% for p in posicoes %}
+            <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="file" class="form-control" name="foto" accept="image/png, image/jpeg, image/webp">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-brand w-100"><i class="bi bi-plus-lg"></i> Adicionar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card d-none d-md-block">
+  <div class="table-responsive">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th></th>
+        <th>Nome</th>
+        <th>Posição</th>
+        <th>Número</th>
+        <th>Status</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jogadores %}
+      <tr>
+        <td style="width:60px">
+          {% if j.foto %}
+            <img class="escudo-circulo" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
+          {% else %}
+            <span class="escudo-placeholder-circulo"><i class="bi bi-person"></i></span>
+          {% endif %}
+        </td>
+        <td class="fw-semibold">
+          {{ j.apelido or j.nome_completo }}
+          {% if j.apelido %}<span class="text-secondary fw-normal small d-block">{{ j.nome_completo }}</span>{% endif %}
+        </td>
+        <td class="text-secondary">{{ j.posicao or '—' }}</td>
+        <td class="text-secondary">{{ j.numero_camisa or '—' }}</td>
+        <td>
+          {% if j.status == 'ativo' %}
+            <span class="badge rounded-pill badge-confirmado">Ativo</span>
+          {% else %}
+            <span class="badge rounded-pill badge-cancelado">Inativo</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          {% if eh_master %}
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('jogadores_editar', jogador_id=j.id) }}" class="btn btn-sm btn-outline-brand">
+              <i class="bi bi-pencil"></i> Editar
+            </a>
+            <form method="post" action="{{ url_for('jogadores_excluir', jogador_id=j.id) }}" onsubmit="return confirm('Excluir {{ j.nome_completo }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card d-md-none">
+  {% for j in jogadores %}
+  <div class="time-linha-mobile{% if eh_master %} time-linha-clicavel{% endif %}"
+       {% if eh_master %}ondblclick="window.location='{{ url_for('jogadores_editar', jogador_id=j.id) }}'"{% endif %}>
+    {% if j.foto %}
+      <img class="escudo-circulo" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
+    {% else %}
+      <span class="escudo-placeholder-circulo"><i class="bi bi-person"></i></span>
+    {% endif %}
+    <div class="time-linha-mobile-info">
+      <div class="fw-semibold">
+        {{ j.apelido or j.nome_completo }}
+        {% if j.status != 'ativo' %}<span class="badge rounded-pill badge-cancelado ms-1">Inativo</span>{% endif %}
+      </div>
+      <div class="text-secondary small">{{ j.posicao or 'Sem posição cadastrada' }}{% if j.numero_camisa %} · nº {{ j.numero_camisa }}{% endif %}</div>
+    </div>
+    {% if eh_master %}
+    <div class="d-flex gap-2" onclick="event.stopPropagation()">
+      <a href="{{ url_for('jogadores_editar', jogador_id=j.id) }}" class="btn btn-sm btn-outline-brand">
+        <i class="bi bi-pencil"></i>
+      </a>
+      <form method="post" action="{{ url_for('jogadores_excluir', jogador_id=j.id) }}" onsubmit="return confirm('Excluir {{ j.nome_completo }}?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if eh_master %}
+    <p class="text-muted small text-center mb-0 pt-2 pb-3"><i class="bi bi-hand-index-thumb"></i> Toque duas vezes num jogador pra editar rápido</p>
+  {% endif %}
+</div>
+
+{% endblock %}

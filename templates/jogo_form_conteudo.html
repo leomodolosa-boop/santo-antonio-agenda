@@ -122,6 +122,55 @@
           <input type="number" min="0" class="form-control" name="placar_adversario" value="{{ jogo.placar_adversario if jogo.placar_adversario is not none else '' }}">
         </div>
       </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold d-block">Artilheiros do {{ time_fixo }}</label>
+        <div id="artilheiros-lista">
+          {% for g in artilheiros %}
+            <div class="row g-2 mb-2 artilheiro-linha">
+              <div class="col-7">
+                <select class="form-select" name="gol_jogador">
+                  <option value="">Selecione o jogador</option>
+                  {% for j in jogadores_ativos %}
+                    <option value="{{ j.id }}" {% if j.id == g.jogador_id %}selected{% endif %}>{{ j.apelido or j.nome_completo }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-3">
+                <input type="number" min="1" class="form-control" name="gol_qtd" value="{{ g.quantidade }}" placeholder="Gols">
+              </div>
+              <div class="col-2">
+                <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.artilheiro-linha').remove()"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAdicionarArtilheiro()">
+          <i class="bi bi-plus-lg"></i> Adicionar artilheiro
+        </button>
+        {% if not jogadores_ativos %}
+          <div class="form-text">Cadastre jogadores em "Jogadores" pra poder marcar os artilheiros.</div>
+        {% endif %}
+      </div>
+
+      <template id="artilheiro-linha-template">
+        <div class="row g-2 mb-2 artilheiro-linha">
+          <div class="col-7">
+            <select class="form-select" name="gol_jogador">
+              <option value="">Selecione o jogador</option>
+              {% for j in jogadores_ativos %}
+                <option value="{{ j.id }}">{{ j.apelido or j.nome_completo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-3">
+            <input type="number" min="1" class="form-control" name="gol_qtd" placeholder="Gols">
+          </div>
+          <div class="col-2">
+            <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.artilheiro-linha').remove()"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      </template>
       {% endif %}
 
       <div class="mb-4">
@@ -208,6 +257,11 @@
 </style>
 
 <script>
+  function agendaAdicionarArtilheiro() {
+    var template = document.getElementById('artilheiro-linha-template');
+    if (!template) return;
+    document.getElementById('artilheiros-lista').appendChild(template.content.cloneNode(true));
+  }
   function agendaAbrirListaTimes() {
     document.getElementById('lista-times-flutuante').classList.add('aberta');
   }

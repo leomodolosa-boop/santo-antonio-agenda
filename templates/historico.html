@@ -67,6 +67,8 @@
         <td>
           {% if j.placar_santo is not none and j.placar_adversario is not none %}
             <strong>{{ j.placar_santo }} x {{ j.placar_adversario }}</strong>
+          {% elif j.status != 'cancelado' %}
+            <span class="badge rounded-pill badge-pendente">Resultado pendente</span>
           {% else %}
             <span class="text-secondary">—</span>
           {% endif %}

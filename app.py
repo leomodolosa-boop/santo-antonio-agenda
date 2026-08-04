@@ -16,11 +16,13 @@ from db import (
     ErroIntegridade,
     TIME_FIXO,
     USANDO_POSTGRES,
+    gerar_escudo_padrao,
     gerar_icones_pwa,
     get_conn,
     init_db,
     salvar_cor_escudo,
     salvar_escudo_blob,
+    salvar_foto_jogador_blob,
 )
 
 
@@ -46,11 +48,14 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.11.0"
+APP_VERSION = "3.0.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
+JOGADORES_DIR = Path(__file__).parent / "static" / "jogadores"
+JOGADORES_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSOES_PERMITIDAS = {"png", "jpg", "jpeg", "webp"}
+POSICOES_JOGADOR = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-campo", "Atacante"]
 
 init_db()
 
@@ -224,7 +229,7 @@ def usuarios_excluir(usuario_id):
     return redirect(url_for("usuarios"))
 
 
-def salvar_escudo(arquivo, time_id, conn):
+def _abrir_imagem_upload(arquivo):
     if not arquivo or not arquivo.filename:
         return None
     ext = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else ""
@@ -232,15 +237,32 @@ def salvar_escudo(arquivo, time_id, conn):
         flash("Formato de imagem não suportado. Envie um arquivo PNG, JPG ou WEBP.")
         return None
     try:
-        imagem = ImageOps.exif_transpose(Image.open(arquivo.stream)).convert("RGBA")
+        return ImageOps.exif_transpose(Image.open(arquivo.stream)).convert("RGBA")
     except Exception:
         flash("Não foi possível abrir essa imagem. Tente outro arquivo.")
+        return None
+
+
+def salvar_escudo(arquivo, time_id, conn):
+    imagem = _abrir_imagem_upload(arquivo)
+    if imagem is None:
         return None
     nome_arquivo = secure_filename(f"time_{time_id}.png")
     caminho = ESCUDOS_DIR / nome_arquivo
     imagem.save(caminho, "PNG")
     salvar_escudo_blob(conn, time_id, caminho)
     salvar_cor_escudo(conn, time_id, caminho)
+    return nome_arquivo
+
+
+def salvar_foto_jogador(arquivo, jogador_id, conn):
+    imagem = _abrir_imagem_upload(arquivo)
+    if imagem is None:
+        return None
+    nome_arquivo = secure_filename(f"jogador_{jogador_id}.png")
+    caminho = JOGADORES_DIR / nome_arquivo
+    imagem.save(caminho, "PNG")
+    salvar_foto_jogador_blob(conn, jogador_id, caminho)
     return nome_arquivo
 
 MESES_PT = [
@@ -480,6 +502,7 @@ def jogo_editar(jogo_id):
         status = request.form.get("status", "confirmado")
         placar_santo = request.form.get("placar_santo") or None
         placar_adversario = request.form.get("placar_adversario") or None
+        resultado_lancado = 1 if (placar_santo is not None and placar_adversario is not None) else 0
 
         erro = None
         if date.fromisoformat(nova_data).weekday() != 5:
@@ -490,12 +513,26 @@ def jogo_editar(jogo_id):
                     """
                     UPDATE jogos
                     SET adversario_id = ?, mandante = ?, data = ?, hora = ?, local = ?, local_mapa_url = ?,
-                        observacao = ?, status = ?, placar_santo = ?, placar_adversario = ?
+                        observacao = ?, status = ?, placar_santo = ?, placar_adversario = ?, resultado_lancado = ?
                     WHERE id = ?
                     """,
                     (adversario_id, mandante, nova_data, hora, local, local_mapa_url or None, observacao, status,
-                     placar_santo, placar_adversario, jogo_id),
+                     placar_santo, placar_adversario, resultado_lancado, jogo_id),
                 )
+                # Substitui os artilheiros do jogo por completo — mais simples
+                # e seguro do que tentar casar linhas antigas com as novas.
+                conn.execute("DELETE FROM gols WHERE jogo_id = ?", (jogo_id,))
+                jogadores_gol = request.form.getlist("gol_jogador")
+                quantidades_gol = request.form.getlist("gol_qtd")
+                for jogador_id_str, quantidade_str in zip(jogadores_gol, quantidades_gol):
+                    if not jogador_id_str or not quantidade_str:
+                        continue
+                    quantidade = int(quantidade_str)
+                    if quantidade > 0:
+                        conn.execute(
+                            "INSERT INTO gols (jogo_id, jogador_id, quantidade) VALUES (?, ?, ?)",
+                            (jogo_id, int(jogador_id_str), quantidade),
+                        )
                 conn.commit()
             except (sqlite3.IntegrityError, ErroIntegridade):
                 erro = "Já existe um jogo agendado para essa data."
@@ -503,6 +540,9 @@ def jogo_editar(jogo_id):
         if erro:
             adversarios = conn.execute(
                 "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
+            ).fetchall()
+            jogadores_ativos = conn.execute(
+                "SELECT id, nome_completo, apelido FROM jogadores WHERE status = 'ativo' ORDER BY nome_completo"
             ).fetchall()
             jogo_atual = dict(request.form)
             jogo_atual["id"] = jogo_id
@@ -513,6 +553,8 @@ def jogo_editar(jogo_id):
                 jogo=jogo_atual,
                 data_str=nova_data,
                 adversarios=adversarios,
+                jogadores_ativos=jogadores_ativos,
+                artilheiros=[],
                 time_fixo=TIME_FIXO,
                 erro=erro,
             )
@@ -523,12 +565,20 @@ def jogo_editar(jogo_id):
     adversarios = conn.execute(
         "SELECT * FROM times WHERE is_fixo = 0 ORDER BY nome"
     ).fetchall()
+    jogadores_ativos = conn.execute(
+        "SELECT id, nome_completo, apelido FROM jogadores WHERE status = 'ativo' ORDER BY nome_completo"
+    ).fetchall()
+    artilheiros = conn.execute(
+        "SELECT jogador_id, quantidade FROM gols WHERE jogo_id = ?", (jogo_id,)
+    ).fetchall()
     template = "jogo_form_conteudo.html" if request.args.get("modal") == "1" else "jogo_form.html"
     return render_template(
         template,
         jogo=jogo_existente,
         data_str=jogo_existente["data"],
         adversarios=adversarios,
+        jogadores_ativos=jogadores_ativos,
+        artilheiros=artilheiros,
         time_fixo=TIME_FIXO,
     )
 
@@ -575,6 +625,23 @@ def historico():
         (date.today().isoformat(),),
     ).fetchall()
     return render_template("historico.html", jogos=jogos, time_fixo=TIME_FIXO)
+
+
+@app.route("/artilharia")
+def artilharia():
+    conn = get_db()
+    ranking = conn.execute(
+        """
+        SELECT jogadores.id, jogadores.nome_completo, jogadores.apelido, jogadores.foto,
+               COALESCE(SUM(gols.quantidade), 0) AS total_gols,
+               COUNT(DISTINCT gols.jogo_id) AS jogos_marcou
+        FROM jogadores
+        JOIN gols ON gols.jogador_id = jogadores.id
+        GROUP BY jogadores.id, jogadores.nome_completo, jogadores.apelido, jogadores.foto
+        ORDER BY total_gols DESC, jogadores.nome_completo ASC
+        """
+    ).fetchall()
+    return render_template("artilharia.html", ranking=ranking, time_fixo=TIME_FIXO)
 
 
 @app.route("/times", methods=["GET", "POST"])
@@ -683,6 +750,88 @@ def times_excluir(time_id):
             conn.execute("DELETE FROM times WHERE id = ?", (time_id,))
             conn.commit()
     return redirect(url_for("times"))
+
+
+@app.route("/jogadores", methods=["GET", "POST"])
+def jogadores():
+    conn = get_db()
+    if request.method == "POST":
+        usuario = usuario_logado()
+        if not usuario or usuario["perfil"] != "master":
+            flash("Você precisa entrar como administrador para fazer isso.")
+            return redirect(url_for("login", proximo=request.full_path))
+        nome_completo = request.form.get("nome_completo", "").strip()
+        apelido = request.form.get("apelido", "").strip()
+        posicao = request.form.get("posicao", "").strip()
+        numero_camisa = request.form.get("numero_camisa", "").strip()
+        if nome_completo:
+            sql_insert = """
+                INSERT INTO jogadores (nome_completo, apelido, posicao, numero_camisa, status, data_cadastro)
+                VALUES (?, ?, ?, ?, 'ativo', ?)
+            """
+            parametros = (nome_completo, apelido or None, posicao or None, numero_camisa or None, date.today().isoformat())
+            if USANDO_POSTGRES:
+                cursor = conn.execute(sql_insert + " RETURNING id", parametros)
+                conn.commit()
+                novo_id = cursor.fetchone()["id"]
+            else:
+                cursor = conn.execute(sql_insert, parametros)
+                conn.commit()
+                novo_id = cursor.lastrowid
+            foto = salvar_foto_jogador(request.files.get("foto"), novo_id, conn)
+            if foto:
+                conn.execute("UPDATE jogadores SET foto = ? WHERE id = ?", (foto, novo_id))
+                conn.commit()
+
+    lista = conn.execute("SELECT * FROM jogadores ORDER BY status ASC, nome_completo").fetchall()
+    return render_template("jogadores.html", jogadores=lista, posicoes=POSICOES_JOGADOR)
+
+
+@app.route("/jogadores/<int:jogador_id>/editar", methods=["GET", "POST"])
+@master_obrigatorio
+def jogadores_editar(jogador_id):
+    conn = get_db()
+    jogador_row = conn.execute("SELECT * FROM jogadores WHERE id = ?", (jogador_id,)).fetchone()
+    if not jogador_row:
+        abort(404)
+
+    if request.method == "POST":
+        nome_completo = request.form.get("nome_completo", "").strip()
+        apelido = request.form.get("apelido", "").strip()
+        posicao = request.form.get("posicao", "").strip()
+        numero_camisa = request.form.get("numero_camisa", "").strip()
+        status = request.form.get("status", "ativo")
+        conn.execute(
+            """
+            UPDATE jogadores SET nome_completo = ?, apelido = ?, posicao = ?, numero_camisa = ?, status = ?
+            WHERE id = ?
+            """,
+            (nome_completo, apelido or None, posicao or None, numero_camisa or None, status, jogador_id),
+        )
+        conn.commit()
+        foto = salvar_foto_jogador(request.files.get("foto"), jogador_id, conn)
+        if foto:
+            conn.execute("UPDATE jogadores SET foto = ? WHERE id = ?", (foto, jogador_id))
+            conn.commit()
+        return redirect(url_for("jogadores"))
+
+    return render_template("jogador_form.html", jogador=jogador_row, posicoes=POSICOES_JOGADOR)
+
+
+@app.route("/jogadores/<int:jogador_id>/excluir", methods=["POST"])
+@master_obrigatorio
+def jogadores_excluir(jogador_id):
+    conn = get_db()
+    jogador_row = conn.execute("SELECT nome_completo FROM jogadores WHERE id = ?", (jogador_id,)).fetchone()
+    if not jogador_row:
+        abort(404)
+    em_uso = conn.execute("SELECT 1 FROM gols WHERE jogador_id = ? LIMIT 1", (jogador_id,)).fetchone()
+    if em_uso:
+        flash(f'"{jogador_row["nome_completo"]}" tem gols registrados e não pode ser excluído — marque como inativo em vez disso.')
+    else:
+        conn.execute("DELETE FROM jogadores WHERE id = ?", (jogador_id,))
+        conn.commit()
+    return redirect(url_for("jogadores"))
 
 
 @app.errorhandler(404)
