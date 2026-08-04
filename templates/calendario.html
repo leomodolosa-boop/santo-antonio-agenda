@@ -270,6 +270,9 @@
                 </button>
               {% endif %}
               {% if jogo.status == 'confirmado' %}
+                {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
+                {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
+                {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
                 <button type="button" class="btn btn-sm btn-brand"
                   data-time-fixo="{{ time_a_nome }}"
                   data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ time_a_escudo) if time_a_escudo else '' }}"
@@ -279,6 +282,11 @@
                   data-hora="{{ jogo.hora or '' }}"
                   data-local="{{ jogo.local or '' }}"
                   data-local-mapa-url="{{ jogo.local_mapa_url or '' }}"
+                  {% if tem_resultado %}
+                  data-placar-a="{{ placar_a }}"
+                  data-placar-b="{{ placar_b }}"
+                  data-artilheiros='{{ artilheiros_por_jogo.get(jogo.id, []) | tojson }}'
+                  {% endif %}
                   onclick="compartilharJogo(this)">
                   <i class="bi bi-share"></i> Compartilhar
                 </button>

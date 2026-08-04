@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.3.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -407,6 +407,26 @@ def calendario(ano, mes):
         ).fetchall()
         jogos_por_data = {linha["data"]: linha for linha in linhas}
 
+    jogos_com_resultado = [
+        linha["id"] for linha in jogos_por_data.values() if linha["placar_santo"] is not None
+    ]
+    artilheiros_por_jogo = {}
+    if jogos_com_resultado:
+        marcadores_gols = ", ".join(["?"] * len(jogos_com_resultado))
+        linhas_gols = conn.execute(
+            f"""
+            SELECT gols.jogo_id, gols.quantidade, jogadores.nome_completo, jogadores.apelido
+            FROM gols JOIN jogadores ON jogadores.id = gols.jogador_id
+            WHERE gols.jogo_id IN ({marcadores_gols})
+            ORDER BY gols.quantidade DESC
+            """,
+            tuple(jogos_com_resultado),
+        ).fetchall()
+        for linha in linhas_gols:
+            artilheiros_por_jogo.setdefault(linha["jogo_id"], []).append(
+                {"nome": linha["apelido"] or linha["nome_completo"], "quantidade": linha["quantidade"]}
+            )
+
     prev_mes = mes - 1 if mes > 1 else 12
     prev_ano = ano if mes > 1 else ano - 1
     next_mes = mes + 1 if mes < 12 else 1
@@ -425,6 +445,7 @@ def calendario(ano, mes):
         nome_mes=MESES_PT[mes],
         sabados=sabados,
         jogos_por_data=jogos_por_data,
+        artilheiros_por_jogo=artilheiros_por_jogo,
         prev_ano=prev_ano,
         prev_mes=prev_mes,
         next_ano=next_ano,

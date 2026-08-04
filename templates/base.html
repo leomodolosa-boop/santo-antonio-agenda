@@ -807,10 +807,12 @@
       ctx.stroke();
     }
 
-    async function agendaGerarImagemJogo({ timeFixo, escudoFixo, adversario, escudoAdversario, data, hora, local }) {
+    async function agendaGerarImagemJogo({ timeFixo, escudoFixo, adversario, escudoAdversario, data, hora, local, placarA, placarB, artilheiros }) {
       if (document.fonts && document.fonts.ready) {
         try { await document.fonts.ready; } catch (e) {}
       }
+      const temResultado = placarA !== undefined && placarA !== null && placarA !== '' &&
+        placarB !== undefined && placarB !== null && placarB !== '';
 
       const W = 1080, H = 1350;
       const canvas = document.createElement('canvas');
@@ -842,7 +844,7 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 58px Inter, sans-serif';
-      ctx.fillText('JOGO CONFIRMADO', W / 2, 112);
+      ctx.fillText(temResultado ? 'RESULTADO FINAL' : 'JOGO CONFIRMADO', W / 2, 112);
 
       ctx.font = '600 26px Inter, sans-serif';
       const subtitulo = 'FUTEBOL AMADOR VETERANO';
@@ -874,27 +876,52 @@
       agendaDesenharEscudo(ctx, imgFixo, W / 2 - 230, centerY, tamanhoEscudo);
       agendaDesenharEscudo(ctx, imgAdv, W / 2 + 230, centerY, tamanhoEscudo);
 
-      // Selo "X" dourado entre os escudos, sobre a linha divisória
-      const medalhaR = 52;
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,.3)';
-      ctx.shadowBlur = 16;
-      ctx.shadowOffsetY = 4;
-      ctx.beginPath();
-      ctx.arc(W / 2, H * faixaTopo, medalhaR, 0, Math.PI * 2);
-      ctx.fillStyle = '#c9a227';
-      ctx.fill();
-      ctx.restore();
-      ctx.beginPath();
-      ctx.arc(W / 2, H * faixaTopo, medalhaR - 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.fillStyle = '#1a1a1a';
-      ctx.font = '800 46px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('X', W / 2, H * faixaTopo + 3);
-      ctx.textBaseline = 'alphabetic';
+      if (temResultado) {
+        // Placar em destaque entre os escudos, sobre a linha divisória
+        const textoPlacar = placarA + '  x  ' + placarB;
+        ctx.font = '800 60px Inter, sans-serif';
+        const larguraPlacar = ctx.measureText(textoPlacar).width;
+        const placarW = larguraPlacar + 64;
+        const placarH = 92;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.3)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 4;
+        agendaRoundRect(ctx, W / 2 - placarW / 2, H * faixaTopo - placarH / 2, placarW, placarH, placarH / 2);
+        ctx.fillStyle = '#c9a227';
+        ctx.fill();
+        ctx.restore();
+        agendaRoundRect(ctx, W / 2 - placarW / 2 + 6, H * faixaTopo - placarH / 2 + 6, placarW - 12, placarH - 12, (placarH - 12) / 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(textoPlacar, W / 2, H * faixaTopo + 3);
+        ctx.textBaseline = 'alphabetic';
+      } else {
+        // Selo "X" dourado entre os escudos, sobre a linha divisória
+        const medalhaR = 52;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.3)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 4;
+        ctx.beginPath();
+        ctx.arc(W / 2, H * faixaTopo, medalhaR, 0, Math.PI * 2);
+        ctx.fillStyle = '#c9a227';
+        ctx.fill();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(W / 2, H * faixaTopo, medalhaR - 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = '800 46px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('X', W / 2, H * faixaTopo + 3);
+        ctx.textBaseline = 'alphabetic';
+      }
 
       ctx.font = '700 38px Inter, sans-serif';
       ctx.fillStyle = '#1a1a1a';
@@ -927,7 +954,14 @@
       }
       if (local) {
         linhaY += 62;
-        agendaWrapText(ctx, '📍  ' + local, 120, linhaY, W - 260, 46, 'left');
+        linhaY = agendaWrapText(ctx, '📍  ' + local, 120, linhaY, W - 260, 46, 'left');
+      }
+      if (artilheiros && artilheiros.length) {
+        linhaY += 62;
+        const textoArtilheiros = artilheiros
+          .map((a) => a.nome + (a.quantidade > 1 ? ' (' + a.quantidade + ')' : ''))
+          .join(', ');
+        agendaWrapText(ctx, '⚽  ' + textoArtilheiros, 120, linhaY, W - 260, 46, 'left');
       }
 
       ctx.textAlign = 'center';
@@ -1016,6 +1050,9 @@
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando...';
       try {
+        let artilheiros = [];
+        try { artilheiros = JSON.parse(d.artilheiros || '[]'); } catch (e) { artilheiros = []; }
+        const temResultado = d.placarA !== undefined && d.placarB !== undefined;
         const blob = await agendaGerarImagemJogo({
           timeFixo: d.timeFixo,
           escudoFixo: d.escudoFixo || null,
@@ -1024,16 +1061,26 @@
           data: d.data,
           hora: d.hora,
           local: d.local,
+          placarA: d.placarA,
+          placarB: d.placarB,
+          artilheiros: artilheiros,
         });
         const nomeArquivo = 'jogo-' + d.adversario.replace(/\s+/g, '-').toLowerCase() + '.png';
         const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
-        const textoCompartilhar = 'Jogo confirmado: ' + d.timeFixo + ' x ' + d.adversario + ' - ' + d.data +
+        const textoArtilheiros = artilheiros.length
+          ? '\n⚽ Gols: ' + artilheiros.map((a) => a.nome + (a.quantidade > 1 ? ' (' + a.quantidade + ')' : '')).join(', ')
+          : '';
+        const textoCompartilhar = (temResultado
+            ? 'Resultado final: ' + d.timeFixo + ' ' + d.placarA + ' x ' + d.placarB + ' ' + d.adversario
+            : 'Jogo confirmado: ' + d.timeFixo + ' x ' + d.adversario) +
+          ' - ' + d.data +
           (d.hora ? ' as ' + d.hora : '') + (d.local ? ' - ' + d.local : '') +
           (d.localMapaUrl ? '\n📍 ' + d.localMapaUrl : '') +
+          textoArtilheiros +
           '\n\n⚽ Veja a agenda completa: ' + window.location.origin;
 
         if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
-          await navigator.share({ files: [arquivo], title: 'Jogo confirmado', text: textoCompartilhar });
+          await navigator.share({ files: [arquivo], title: temResultado ? 'Resultado final' : 'Jogo confirmado', text: textoCompartilhar });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
