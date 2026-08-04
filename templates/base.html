@@ -197,6 +197,18 @@
       color: #2a2000;
       box-shadow: 0 4px 18px rgba(201, 162, 39, .55), inset 0 1px 0 rgba(255, 255, 255, .5);
     }
+    .card-artilharia-destaque {
+      background: linear-gradient(120deg, var(--sao-grena) 0%, #8a1c2c 100%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .15);
+      box-shadow: 0 6px 18px rgba(107, 21, 34, .35);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card-artilharia-destaque:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 26px rgba(107, 21, 34, .45);
+    }
+    .card-artilharia-destaque i.bi-trophy-fill { color: #ffd76a; }
     .btn-outline-warning-brand {
       border-color: var(--sao-dourado);
       color: #7a6210;
@@ -1022,6 +1034,206 @@
 
         if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
           await navigator.share({ files: [arquivo], title: 'Jogo confirmado', text: textoCompartilhar });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = nomeArquivo;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          alert('Imagem baixada! Agora e so anexar no WhatsApp.');
+        }
+      } catch (erro) {
+        console.error(erro);
+        alert('Nao foi possivel gerar a imagem.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+    }
+
+    function agendaDesenharFotoCircular(ctx, img, cx, cy, raio) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.3)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, raio, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, raio - 4, 0, Math.PI * 2);
+      ctx.clip();
+      if (img) {
+        const escala = Math.max((raio * 2) / img.width, (raio * 2) / img.height);
+        const w = img.width * escala;
+        const h = img.height * escala;
+        ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+      } else {
+        ctx.fillStyle = '#eef1f3';
+        ctx.fillRect(cx - raio, cy - raio, raio * 2, raio * 2);
+        ctx.fillStyle = '#b3b9bf';
+        ctx.font = '700 ' + Math.floor(raio * 0.9) + 'px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👤', cx, cy);
+        ctx.textBaseline = 'alphabetic';
+      }
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, raio - 4, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#c9a227';
+      ctx.stroke();
+    }
+
+    async function agendaGerarImagemArtilharia({ timeFixo, escudoFixo, ano, jogadores }) {
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) {}
+      }
+
+      const W = 1080, H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      agendaRoundRect(ctx, 0, 0, W, H, 44);
+      ctx.clip();
+
+      const faixaTopo = 0.30;
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#6b1522');
+      grad.addColorStop(faixaTopo, '#6b1522');
+      grad.addColorStop(faixaTopo, '#f6f6f4');
+      grad.addColorStop(1, '#f6f6f4');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(0, H * faixaTopo - 3, W, 6);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 58px Inter, sans-serif';
+      ctx.fillText('🏆 ARTILHARIA', W / 2, 112);
+
+      ctx.font = '600 26px Inter, sans-serif';
+      const subtitulo = 'TEMPORADA ' + ano;
+      const larguraSubtitulo = ctx.measureText(subtitulo).width;
+      const pillW = larguraSubtitulo + 64;
+      const pillH = 52;
+      const pillX = W / 2 - pillW / 2;
+      const pillY = 142;
+      ctx.save();
+      agendaRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,.45)';
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(subtitulo, W / 2, pillY + pillH / 2 + 2);
+      ctx.textBaseline = 'alphabetic';
+
+      const imgEscudo = await agendaCarregarImagem(escudoFixo);
+      const centerY = 380;
+      agendaDesenharEscudo(ctx, imgEscudo, W / 2, centerY, 210);
+
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = '700 40px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      agendaWrapText(ctx, timeFixo, W / 2, centerY + 210 / 2 + 60, 700, 46);
+
+      const boxY = 640;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.35)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 10;
+      ctx.fillStyle = '#0a3620';
+      agendaRoundRect(ctx, 70, boxY, W - 140, H - boxY - 60, 28);
+      ctx.fill();
+      ctx.restore();
+
+      agendaRoundRect(ctx, 70, boxY, W - 140, 8, 4);
+      ctx.fillStyle = '#c9a227';
+      ctx.fill();
+
+      const medalhas = ['🥇', '🥈', '🥉'];
+      const imagensJogadores = await Promise.all(
+        jogadores.map((j) => agendaCarregarImagem(j.foto || null))
+      );
+
+      const linhaAltura = (H - boxY - 60 - 60) / Math.max(jogadores.length, 1);
+      jogadores.forEach((j, i) => {
+        const cy = boxY + 70 + linhaAltura * i;
+        const cx = 150;
+
+        agendaDesenharFotoCircular(ctx, imagensJogadores[i], cx, cy, 44);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = i < 3 ? '700 34px Inter, sans-serif' : '600 32px Inter, sans-serif';
+        ctx.fillText(j.nome, cx + 70, cy - 6);
+
+        ctx.font = '400 24px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        ctx.fillText(j.jogos + ' jogo' + (j.jogos === 1 ? '' : 's'), cx + 70, cy + 28);
+
+        ctx.textAlign = 'right';
+        ctx.font = '800 46px Inter, sans-serif';
+        ctx.fillStyle = '#c9a227';
+        ctx.fillText(String(j.gols), W - 170, cy + 8);
+        ctx.font = '600 22px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        ctx.fillText('gols', W - 130, cy + 8);
+
+        if (i < 3) {
+          ctx.textAlign = 'center';
+          ctx.font = '40px Inter, sans-serif';
+          ctx.fillText(medalhas[i], W - 90, cy + 14);
+        }
+      });
+
+      ctx.textAlign = 'center';
+      ctx.font = '600 24px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.fillText('⚽ Agenda Santo Antônio do Oriente', W / 2, H - 34);
+
+      ctx.restore();
+
+      return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    }
+
+    async function compartilharArtilharia(btn) {
+      const d = btn.dataset;
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando...';
+      try {
+        const jogadores = JSON.parse(d.jogadores || '[]');
+        const blob = await agendaGerarImagemArtilharia({
+          timeFixo: d.timeFixo,
+          escudoFixo: d.escudoFixo || null,
+          ano: d.ano,
+          jogadores: jogadores,
+        });
+        const nomeArquivo = 'artilharia-' + d.ano + '.png';
+        const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+        const textoCompartilhar = '🏆 Artilharia ' + d.ano + ' - ' + d.timeFixo +
+          '\n\n⚽ Veja o ranking completo: ' + window.location.origin + '/artilharia';
+
+        if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+          await navigator.share({ files: [arquivo], title: 'Artilharia ' + d.ano, text: textoCompartilhar });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');

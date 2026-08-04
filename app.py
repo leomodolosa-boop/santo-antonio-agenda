@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.2.1"
+APP_VERSION = "3.3.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -436,6 +436,7 @@ def calendario(ano, mes):
         proximo_jogo=proximo_jogo,
         dias_para_proximo_jogo=dias_para_proximo_jogo,
         stats=calcular_aproveitamento(),
+        ano_atual=date.today().year,
     )
 
 
@@ -684,7 +685,22 @@ def artilharia():
         """,
         (f"{ano_atual}-%",),
     ).fetchall()
-    return render_template("artilharia.html", ranking=ranking, time_fixo=TIME_FIXO, ano_atual=ano_atual)
+    top_artilheiros = [
+        {
+            "nome": row["apelido"] or row["nome_completo"],
+            "gols": row["total_gols"],
+            "jogos": row["jogos_marcou"],
+            "foto": url_for("static", filename="jogadores/" + row["foto"]) if row["foto"] else "",
+        }
+        for row in ranking[:5]
+    ]
+    return render_template(
+        "artilharia.html",
+        ranking=ranking,
+        time_fixo=TIME_FIXO,
+        ano_atual=ano_atual,
+        top_artilheiros=top_artilheiros,
+    )
 
 
 @app.route("/times", methods=["GET", "POST"])

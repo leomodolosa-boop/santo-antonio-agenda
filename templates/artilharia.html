@@ -27,6 +27,16 @@
 {% else %}
 <div class="card">
   <div class="card-body p-2 p-md-3">
+    <div class="d-flex justify-content-end p-2 p-md-1 mb-2">
+      <button type="button" class="btn btn-outline-brand"
+        data-time-fixo="{{ time_fixo }}"
+        data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ escudo_fixo) if escudo_fixo else '' }}"
+        data-ano="{{ ano_atual }}"
+        data-jogadores='{{ top_artilheiros | tojson }}'
+        onclick="compartilharArtilharia(this)">
+        <i class="bi bi-share-fill"></i> Compartilhar
+      </button>
+    </div>
     {% for j in ranking %}
       {% set posicao = loop.index %}
       <div class="artilheiro-linha {{ 'artilheiro-podio artilheiro-podio-' ~ posicao if posicao <= 3 else '' }}">
