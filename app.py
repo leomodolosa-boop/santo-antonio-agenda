@@ -46,7 +46,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "2.7.1"
+APP_VERSION = "2.8.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -646,12 +646,14 @@ def times_editar(time_id):
         contato = request.form.get("contato", "").strip()
         nome_campo = request.form.get("nome_campo", "").strip()
         endereco = request.form.get("endereco", "").strip()
+        cep = request.form.get("cep", "").strip()
+        campo_mapa_url = request.form.get("campo_mapa_url", "").strip()
         conn.execute(
             """
-            UPDATE times SET cidade = ?, contato = ?, nome_campo = ?, endereco = ?
+            UPDATE times SET cidade = ?, contato = ?, nome_campo = ?, endereco = ?, cep = ?, campo_mapa_url = ?
             WHERE id = ?
             """,
-            (cidade, contato, nome_campo, endereco, time_id),
+            (cidade, contato, nome_campo, endereco, cep or None, campo_mapa_url or None, time_id),
         )
         conn.commit()
         escudo = salvar_escudo(request.files.get("escudo"), time_id, conn)

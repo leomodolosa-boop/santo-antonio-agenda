@@ -33,18 +33,30 @@
       </div>
 
       <div class="row">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">CEP</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-mailbox"></i></span>
+            <input type="text" class="form-control" name="cep" id="cep_input" value="{{ time.cep or '' }}"
+                   placeholder="00000-000" maxlength="9" inputmode="numeric">
+            <button type="button" class="btn btn-outline-brand" onclick="agendaBuscarCep()">
+              <i class="bi bi-search"></i> Buscar
+            </button>
+          </div>
+          <div class="form-text" id="cep_status">Preenche o município automaticamente.</div>
+        </div>
+        <div class="col-md-4 mb-3">
           <label class="form-label">Município</label>
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-geo"></i></span>
-            <input type="text" class="form-control" name="cidade" value="{{ time.cidade or '' }}" placeholder="Ex: Venda Nova do Imigrante">
+            <input type="text" class="form-control" name="cidade" id="cidade_input" value="{{ time.cidade or '' }}" placeholder="Ex: Venda Nova do Imigrante">
           </div>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="form-label">Nome do campo</label>
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-flag"></i></span>
-            <input type="text" class="form-control" name="nome_campo" value="{{ time.nome_campo or '' }}" placeholder="Ex: Campo do São Roque">
+            <input type="text" class="form-control" name="nome_campo" id="nome_campo_input" value="{{ time.nome_campo or '' }}" placeholder="Ex: Campo do São Roque">
           </div>
         </div>
       </div>
@@ -53,7 +65,24 @@
         <label class="form-label">Endereço</label>
         <div class="input-group">
           <span class="input-group-text bg-white"><i class="bi bi-signpost-split"></i></span>
-          <input type="text" class="form-control" name="endereco" value="{{ time.endereco or '' }}" placeholder="Rua, número, bairro">
+          <input type="text" class="form-control" name="endereco" id="endereco_input" value="{{ time.endereco or '' }}" placeholder="Rua, número, bairro">
+          <button type="button" class="btn btn-outline-brand" onclick="agendaBuscarCampoNoMaps()">
+            <i class="bi bi-map"></i> Buscar no mapa
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">
+          Link do Google Maps do campo <span class="text-muted small fw-normal">(opcional)</span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+          <input type="url" class="form-control" name="campo_mapa_url" value="{{ time.campo_mapa_url or '' }}"
+                 placeholder="Cole aqui o link depois de achar o campo no Google Maps">
+        </div>
+        <div class="form-text">
+          Clique em "Buscar no mapa", encontre o campo certo, toque em Compartilhar → Copiar link, e cole aqui.
         </div>
       </div>
 
@@ -72,5 +101,44 @@
     </form>
   </div>
 </div>
+
+<script>
+  function agendaBuscarCampoNoMaps() {
+    var partes = [
+      document.getElementById('endereco_input').value.trim(),
+      document.getElementById('nome_campo_input').value.trim(),
+      document.getElementById('cidade_input').value.trim(),
+    ].filter(Boolean);
+    var termo = partes.join(', ') || 'campo de futebol';
+    window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(termo), '_blank', 'noopener');
+  }
+
+  async function agendaBuscarCep() {
+    var cepInput = document.getElementById('cep_input');
+    var status = document.getElementById('cep_status');
+    var cep = cepInput.value.replace(/\D/g, '');
+    if (cep.length !== 8) {
+      status.textContent = 'Digite um CEP válido (8 números).';
+      return;
+    }
+    status.textContent = 'Buscando...';
+    try {
+      var resp = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+      var dados = await resp.json();
+      if (dados.erro) {
+        status.textContent = 'CEP não encontrado.';
+        return;
+      }
+      document.getElementById('cidade_input').value = dados.localidade + (dados.uf ? ' - ' + dados.uf : '');
+      var enderecoInput = document.getElementById('endereco_input');
+      if (!enderecoInput.value.trim()) {
+        enderecoInput.value = [dados.logradouro, dados.bairro].filter(Boolean).join(', ');
+      }
+      status.textContent = 'Endereço encontrado!';
+    } catch (e) {
+      status.textContent = 'Não foi possível buscar o CEP agora.';
+    }
+  }
+</script>
 
 {% endblock %}

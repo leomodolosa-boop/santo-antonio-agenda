@@ -308,9 +308,13 @@ def init_db():
                 escudo_dados BYTEA,
                 escudo_cor TEXT,
                 nome_campo TEXT,
-                endereco TEXT
+                endereco TEXT,
+                cep TEXT,
+                campo_mapa_url TEXT
             );
             ALTER TABLE times ADD COLUMN IF NOT EXISTS escudo_cor TEXT;
+            ALTER TABLE times ADD COLUMN IF NOT EXISTS cep TEXT;
+            ALTER TABLE times ADD COLUMN IF NOT EXISTS campo_mapa_url TEXT;
             CREATE TABLE IF NOT EXISTS jogos (
                 id SERIAL PRIMARY KEY,
                 data TEXT NOT NULL UNIQUE,
@@ -346,7 +350,9 @@ def init_db():
                 is_fixo INTEGER NOT NULL DEFAULT 0,
                 escudo TEXT,
                 nome_campo TEXT,
-                endereco TEXT
+                endereco TEXT,
+                cep TEXT,
+                campo_mapa_url TEXT
             );
 
             CREATE TABLE IF NOT EXISTS jogos (
@@ -384,6 +390,10 @@ def init_db():
             conn.execute("ALTER TABLE times ADD COLUMN endereco TEXT")
         if "escudo_cor" not in colunas:
             conn.execute("ALTER TABLE times ADD COLUMN escudo_cor TEXT")
+        if "cep" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN cep TEXT")
+        if "campo_mapa_url" not in colunas:
+            conn.execute("ALTER TABLE times ADD COLUMN campo_mapa_url TEXT")
         conn.commit()
 
         colunas_jogos = {row["name"] for row in conn.execute("PRAGMA table_info(jogos)")}
