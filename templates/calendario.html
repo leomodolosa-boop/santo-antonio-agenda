@@ -49,20 +49,24 @@
           <div class="confronto confronto-grande my-2"
                style="--pos-santo: {{ '22%' if mandante_casa else '78%' }}; --pos-adv: {{ '78%' if mandante_casa else '22%' }}; {% set cor_adversario = time_b_cor if mandante_casa else time_a_cor %}{% if cor_adversario %}--cor-adv-rgb: {{ cor_adversario|hex_para_rgb }};{% endif %}">
             <div class="confronto-time">
-              {% if time_a_escudo %}
-                <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
-              {% else %}
-                <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
-              {% endif %}
+              <div class="confronto-escudo-wrap">
+                {% if time_a_escudo %}
+                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
+                {% else %}
+                  <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
+                {% endif %}
+              </div>
               <small class="confronto-nome">{{ time_a_nome }}</small>
             </div>
             <span class="confronto-versus">×</span>
             <div class="confronto-time">
-              {% if time_b_escudo %}
-                <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
-              {% else %}
-                <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
-              {% endif %}
+              <div class="confronto-escudo-wrap">
+                {% if time_b_escudo %}
+                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
+                {% else %}
+                  <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
+                {% endif %}
+              </div>
               <small class="confronto-nome">{{ time_b_nome }}</small>
             </div>
           </div>
@@ -182,20 +186,24 @@
             <div class="confronto my-3"
                  style="--pos-santo: {{ '22%' if mandante_casa else '78%' }}; --pos-adv: {{ '78%' if mandante_casa else '22%' }}; {% set cor_adversario = time_b_cor if mandante_casa else time_a_cor %}{% if cor_adversario %}--cor-adv-rgb: {{ cor_adversario|hex_para_rgb }};{% endif %}">
               <div class="confronto-time">
-                {% if time_a_escudo %}
-                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
-                {% else %}
-                  <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
-                {% endif %}
+                <div class="confronto-escudo-wrap">
+                  {% if time_a_escudo %}
+                    <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
+                  {% else %}
+                    <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
+                  {% endif %}
+                </div>
                 <small class="confronto-nome">{{ time_a_nome }}</small>
               </div>
               <span class="confronto-versus">×</span>
               <div class="confronto-time">
+                <div class="confronto-escudo-wrap">
                 {% if time_b_escudo %}
                   <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
                 {% else %}
                   <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
                 {% endif %}
+                </div>
                 <small class="confronto-nome">{{ time_b_nome }}</small>
               </div>
             </div>
