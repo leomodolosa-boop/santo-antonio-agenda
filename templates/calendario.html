@@ -78,6 +78,14 @@
             {% if proximo_jogo.hora %} &middot; <i class="bi bi-clock"></i> {{ proximo_jogo.hora }}{% endif %}
             {% if proximo_jogo.local %}<br><i class="bi bi-geo-alt"></i> {{ proximo_jogo.local }}{% endif %}
           </div>
+          {% if proximo_jogo.local %}
+            <div class="text-center mt-3">
+              <button type="button" class="btn btn-sm btn-outline-brand"
+                onclick='agendaAbrirLocalizacao({{ proximo_jogo.local|tojson }}, {{ (proximo_jogo.local_mapa_url or "")|tojson }})'>
+                <i class="bi bi-geo-alt-fill"></i> Ver localização
+              </button>
+            </div>
+          {% endif %}
         {% else %}
           <div class="text-center text-muted py-4">
             <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
@@ -227,6 +235,12 @@
             {% endif %}
             {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
             <div class="d-flex gap-2 mt-2 flex-wrap">
+              {% if jogo.local %}
+                <button type="button" class="btn btn-sm btn-outline-brand"
+                  onclick='agendaAbrirLocalizacao({{ jogo.local|tojson }}, {{ (jogo.local_mapa_url or "")|tojson }})'>
+                  <i class="bi bi-geo-alt-fill"></i> Ver localização
+                </button>
+              {% endif %}
               {% if eh_master %}
                 <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_editar', jogo_id=jogo.id) }}')">
                   <i class="bi bi-pencil"></i> Editar

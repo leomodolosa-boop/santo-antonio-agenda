@@ -809,6 +809,19 @@
       return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     }
 
+    function agendaAbrirLocalizacao(local, mapaUrl) {
+      if (mapaUrl) {
+        window.open(mapaUrl, '_blank', 'noopener');
+        return;
+      }
+      var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var url = ehIOS
+        ? 'https://maps.apple.com/?q=' + encodeURIComponent(local)
+        : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(local);
+      window.open(url, '_blank', 'noopener');
+    }
+
     async function compartilharJogo(btn) {
       const d = btn.dataset;
       const textoOriginal = btn.innerHTML;
