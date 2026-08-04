@@ -372,6 +372,33 @@
       box-shadow: 0 3px 12px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .12);
     }
 
+    /* ---------- Dropdown de busca (times/endereços) ---------- */
+    .time-picker-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      max-height: 320px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #e3e6ea;
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(20,20,40,.18);
+      padding: .4rem;
+    }
+    .time-picker-dropdown.aberta { display: block; }
+    .time-picker-item {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .5rem .6rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .time-picker-item:hover { background: #eef1f3; }
+
     footer.app-footer {
       color: var(--texto-suave);
       font-size: .82rem;
@@ -808,6 +835,63 @@
 
       return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     }
+
+    let agendaBuscaEnderecoTimeout = null;
+    function agendaBuscarEndereco(termo, idInput, idLista, idUrlInput, idStatus) {
+      clearTimeout(agendaBuscaEnderecoTimeout);
+      const lista = document.getElementById(idLista);
+      if (!lista) return;
+      if (!termo || termo.trim().length < 3) {
+        lista.classList.remove('aberta');
+        lista.innerHTML = '';
+        return;
+      }
+      agendaBuscaEnderecoTimeout = setTimeout(async function () {
+        try {
+          const resp = await fetch(
+            'https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&q=' + encodeURIComponent(termo)
+          );
+          const resultados = await resp.json();
+          lista.innerHTML = '';
+          if (!resultados.length) {
+            lista.classList.remove('aberta');
+            return;
+          }
+          resultados.forEach(function (r) {
+            const item = document.createElement('div');
+            item.className = 'time-picker-item';
+            item.innerHTML = '<i class="bi bi-geo-alt text-secondary"></i><span>' + r.display_name + '</span>';
+            item.onclick = function () { agendaSelecionarEndereco(r, idInput, idLista, idUrlInput, idStatus); };
+            lista.appendChild(item);
+          });
+          lista.classList.add('aberta');
+        } catch (e) {
+          lista.classList.remove('aberta');
+        }
+      }, 500);
+    }
+
+    function agendaSelecionarEndereco(r, idInput, idLista, idUrlInput, idStatus) {
+      document.getElementById(idInput).value = r.display_name;
+      document.getElementById(idUrlInput).value =
+        'https://www.google.com/maps/search/?api=1&query=' + r.lat + ',' + r.lon;
+      const lista = document.getElementById(idLista);
+      lista.classList.remove('aberta');
+      lista.innerHTML = '';
+      const status = document.getElementById(idStatus);
+      if (status) {
+        status.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Localização exata salva.';
+      }
+    }
+
+    document.addEventListener('click', function (e) {
+      document.querySelectorAll('.time-picker-dropdown.aberta').forEach(function (lista) {
+        const wrapper = lista.closest('[data-picker-wrapper]');
+        if (wrapper && !wrapper.contains(e.target)) {
+          lista.classList.remove('aberta');
+        }
+      });
+    });
 
     function agendaAbrirLocalizacao(local, mapaUrl) {
       if (mapaUrl) {

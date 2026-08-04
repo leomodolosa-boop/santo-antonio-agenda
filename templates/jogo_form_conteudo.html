@@ -77,28 +77,23 @@
         </div>
         <div class="col-md-8">
           <label class="form-label">Local</label>
-          <div class="input-group">
-            <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
-            <input type="text" class="form-control" id="local_input" name="local" value="{{ jogo.local if jogo else '' }}" placeholder="Ex: Campo do Santo Antônio">
-            <button type="button" class="btn btn-outline-brand" onclick="agendaBuscarNoMaps()">
-              <i class="bi bi-map"></i> Buscar
-            </button>
+          <div class="position-relative" data-picker-wrapper>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
+              <input type="text" class="form-control" id="local_input" name="local" autocomplete="off"
+                     value="{{ jogo.local if jogo else '' }}" placeholder="Digite pra buscar o endereço..."
+                     oninput="agendaBuscarEndereco(this.value, 'local_input', 'lista-enderecos-flutuante', 'local_mapa_url_input', 'local_mapa_status')">
+            </div>
+            <div id="lista-enderecos-flutuante" class="time-picker-dropdown"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label">
-          Link do Google Maps <span class="text-muted small fw-normal">(opcional)</span>
-        </label>
-        <div class="input-group">
-          <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
-          <input type="url" class="form-control" name="local_mapa_url" id="local_mapa_url_input"
-                 value="{{ jogo.local_mapa_url if jogo and jogo.local_mapa_url else '' }}"
-                 placeholder="Cole aqui o link depois de achar o local no Google Maps">
-        </div>
-        <div class="form-text">
-          Clique em "Buscar", encontre o local certo no mapa, toque em Compartilhar → Copiar link, e cole aqui. Esse link vai junto quando o jogo for compartilhado no WhatsApp.
+          <input type="hidden" name="local_mapa_url" id="local_mapa_url_input" value="{{ jogo.local_mapa_url if jogo and jogo.local_mapa_url else '' }}">
+          <div class="form-text" id="local_mapa_status">
+            {% if jogo and jogo.local_mapa_url %}
+              <i class="bi bi-check-circle-fill text-success"></i> Localização exata salva.
+            {% else %}
+              Escolha um resultado da lista pra salvar a localização exata (aparece ao compartilhar no WhatsApp).
+            {% endif %}
+          </div>
         </div>
       </div>
 
@@ -196,31 +191,6 @@
   #mandante-casa:checked ~ label[for="mandante-casa"],
   #mandante-fora:checked ~ label[for="mandante-fora"] { color: #fff; }
 
-  .time-picker-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    z-index: 20;
-    max-height: 320px;
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #e3e6ea;
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(20,20,40,.18);
-    padding: .4rem;
-  }
-  .time-picker-dropdown.aberta { display: block; }
-  .time-picker-item {
-    display: flex;
-    align-items: center;
-    gap: .65rem;
-    padding: .5rem .6rem;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .time-picker-item:hover { background: #eef1f3; }
   .time-picker-item img {
     width: 34px; height: 34px; object-fit: contain; border-radius: 7px;
     background: #fff; border: 1px solid #e3e6ea; flex-shrink: 0;
@@ -233,11 +203,6 @@
 </style>
 
 <script>
-  function agendaBuscarNoMaps() {
-    var termo = document.getElementById('local_input').value.trim();
-    var url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(termo || 'campo de futebol');
-    window.open(url, '_blank', 'noopener');
-  }
   function agendaAbrirListaTimes() {
     document.getElementById('lista-times-flutuante').classList.add('aberta');
   }

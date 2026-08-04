@@ -61,28 +61,24 @@
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Endereço</label>
-        <div class="input-group">
-          <span class="input-group-text bg-white"><i class="bi bi-signpost-split"></i></span>
-          <input type="text" class="form-control" name="endereco" id="endereco_input" value="{{ time.endereco or '' }}" placeholder="Rua, número, bairro">
-          <button type="button" class="btn btn-outline-brand" onclick="agendaBuscarCampoNoMaps()">
-            <i class="bi bi-map"></i> Buscar no mapa
-          </button>
-        </div>
-      </div>
-
       <div class="mb-4">
-        <label class="form-label">
-          Link do Google Maps do campo <span class="text-muted small fw-normal">(opcional)</span>
-        </label>
-        <div class="input-group">
-          <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
-          <input type="url" class="form-control" name="campo_mapa_url" value="{{ time.campo_mapa_url or '' }}"
-                 placeholder="Cole aqui o link depois de achar o campo no Google Maps">
+        <label class="form-label">Endereço</label>
+        <div class="position-relative" data-picker-wrapper>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-signpost-split"></i></span>
+            <input type="text" class="form-control" name="endereco" id="endereco_input" autocomplete="off"
+                   value="{{ time.endereco or '' }}" placeholder="Digite pra buscar o endereço..."
+                   oninput="agendaBuscarEndereco(this.value, 'endereco_input', 'lista-enderecos-flutuante', 'campo_mapa_url_input', 'campo_mapa_status')">
+          </div>
+          <div id="lista-enderecos-flutuante" class="time-picker-dropdown"></div>
         </div>
-        <div class="form-text">
-          Clique em "Buscar no mapa", encontre o campo certo, toque em Compartilhar → Copiar link, e cole aqui.
+        <input type="hidden" name="campo_mapa_url" id="campo_mapa_url_input" value="{{ time.campo_mapa_url or '' }}">
+        <div class="form-text" id="campo_mapa_status">
+          {% if time.campo_mapa_url %}
+            <i class="bi bi-check-circle-fill text-success"></i> Localização exata do campo salva.
+          {% else %}
+            Escolha um resultado da lista pra salvar a localização exata do campo.
+          {% endif %}
         </div>
       </div>
 
@@ -103,16 +99,6 @@
 </div>
 
 <script>
-  function agendaBuscarCampoNoMaps() {
-    var partes = [
-      document.getElementById('endereco_input').value.trim(),
-      document.getElementById('nome_campo_input').value.trim(),
-      document.getElementById('cidade_input').value.trim(),
-    ].filter(Boolean);
-    var termo = partes.join(', ') || 'campo de futebol';
-    window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(termo), '_blank', 'noopener');
-  }
-
   async function agendaBuscarCep() {
     var cepInput = document.getElementById('cep_input');
     var status = document.getElementById('cep_status');
