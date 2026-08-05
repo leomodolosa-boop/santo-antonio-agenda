@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.5.5"
+APP_VERSION = "3.6.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -292,6 +292,24 @@ def jogo_aguardando_resultado(data_jogo_str, status, resultado_lancado):
 
 
 app.jinja_env.globals["jogo_aguardando_resultado"] = jogo_aguardando_resultado
+
+
+def jogo_ao_vivo(data_jogo_str, hora_str, status, resultado_lancado):
+    """Estimativa simples: considera "ao vivo" da hora marcada até 2h depois,
+    já que não guardamos horário de término da partida."""
+    if status != "confirmado" or resultado_lancado or not hora_str:
+        return False
+    data_jogo = date.fromisoformat(data_jogo_str)
+    agora = datetime.now()
+    if data_jogo != agora.date():
+        return False
+    h, m = hora_str.split(":")
+    inicio = datetime.combine(data_jogo, hora_tipo(int(h), int(m)))
+    fim = inicio + timedelta(hours=2)
+    return inicio <= agora <= fim
+
+
+app.jinja_env.globals["jogo_ao_vivo"] = jogo_ao_vivo
 
 
 def sabados_do_mes(ano, mes):

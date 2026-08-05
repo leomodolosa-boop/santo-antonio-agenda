@@ -208,12 +208,25 @@
       {% else %}
         {% set card_status = 'card-livre' %}
       {% endif %}
-      <div class="card {{ card_status }} h-100">
+      {% set card_resultado = '' %}
+      {% if jogo and jogo.status == 'confirmado' and jogo.placar_santo is not none and jogo.placar_adversario is not none %}
+        {% if jogo.placar_santo > jogo.placar_adversario %}
+          {% set card_resultado = 'card-resultado-vitoria' %}
+        {% elif jogo.placar_santo == jogo.placar_adversario %}
+          {% set card_resultado = 'card-resultado-empate' %}
+        {% else %}
+          {% set card_resultado = 'card-resultado-derrota' %}
+        {% endif %}
+      {% endif %}
+      <div class="card jogo-card {{ card_status }} {{ card_resultado }} h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <h5 class="card-title mb-0"><i class="bi bi-calendar-event text-secondary me-1"></i> Sábado, {{ d.strftime('%d/%m/%Y') }}</h5>
             {% if jogo %}
               <div class="d-flex flex-column gap-1 align-items-end">
+                {% if jogo_ao_vivo(jogo.data, jogo.hora, jogo.status, jogo.resultado_lancado) %}
+                  <span class="badge rounded-pill badge-ao-vivo"><span class="dot-pulso"></span> AO VIVO</span>
+                {% endif %}
                 {% set badge_class = 'badge-confirmado' if jogo.status == 'confirmado' else ('badge-pendente' if jogo.status == 'pendente' else 'badge-cancelado') %}
                 {% set status_label = 'Pendente de confirmação' if jogo.status == 'pendente' else jogo.status|capitalize %}
                 <span class="badge rounded-pill {{ badge_class }}">{{ status_label }}</span>
@@ -275,37 +288,41 @@
                 <small class="confronto-nome">{{ time_b_nome }}</small>
               </div>
             </div>
-            <p class="mb-1 text-secondary small">
-              <i class="bi bi-{{ 'house-door' if mandante_casa else 'airplane' }}"></i>
-              {{ 'Jogo em casa' if mandante_casa else 'Jogo fora' }}
-            </p>
-            {% if jogo.hora %}<p class="mb-1 text-secondary small"><i class="bi bi-clock"></i> {{ jogo.hora }}</p>{% endif %}
-            {% if jogo.local %}
-              <p class="mb-1 text-secondary small">
-                <i class="bi bi-geo-alt"></i>
-                {% if jogo.local_mapa_url %}
-                  <a href="{{ jogo.local_mapa_url }}" target="_blank" rel="noopener" class="text-secondary">{{ jogo.local }} <i class="bi bi-box-arrow-up-right small"></i></a>
-                {% else %}
-                  {{ jogo.local }}
-                {% endif %}
-              </p>
-            {% endif %}
             {% if tem_resultado %}
-              <p class="mb-1 d-flex align-items-center gap-2 flex-wrap">
-                Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong>
-                <span class="badge rounded-pill badge-{{ resultado_time_fixo }}">{{ resultado_label }}</span>
-              </p>
-              {% if artilheiros_por_jogo.get(jogo.id) %}
-                <p class="mb-1 text-secondary small">
-                  <i class="bi bi-dribbble"></i> Gols:
-                  {%- for a in artilheiros_por_jogo[jogo.id] %}
-                    {% if a.nome == 'Contra' %}<span class="text-danger fw-semibold">Contra</span>{% else %}{{ a.nome }}{% endif %}{% if a.quantidade > 1 %} ({{ a.quantidade }}){% endif %}{{ ',' if not loop.last }}
-                  {%- endfor %}
-                </p>
+              <div class="text-center mb-2">
+                <span class="badge rounded-pill badge-{{ resultado_time_fixo }} resultado-chip">{{ resultado_label }}</span>
+              </div>
+            {% endif %}
+
+            <div class="jogo-meta">
+              <span class="jogo-meta-item">
+                <i class="bi bi-{{ 'house-door-fill' if mandante_casa else 'airplane-fill' }}"></i>
+                {{ 'Casa' if mandante_casa else 'Fora' }}
+              </span>
+              {% if jogo.hora %}
+                <span class="jogo-meta-item"><i class="bi bi-clock-fill"></i> {{ jogo.hora }}</span>
               {% endif %}
+              {% if jogo.local %}
+                <span class="jogo-meta-item">
+                  <i class="bi bi-geo-alt-fill"></i>
+                  {% if jogo.local_mapa_url %}
+                    <a href="{{ jogo.local_mapa_url }}" target="_blank" rel="noopener">{{ jogo.local }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                  {% else %}
+                    {{ jogo.local }}
+                  {% endif %}
+                </span>
+              {% endif %}
+            </div>
+            {% if tem_resultado and artilheiros_por_jogo.get(jogo.id) %}
+              <p class="mb-1 text-secondary small">
+                <i class="bi bi-dribbble"></i> Gols:
+                {%- for a in artilheiros_por_jogo[jogo.id] %}
+                  {% if a.nome == 'Contra' %}<span class="text-danger fw-semibold">Contra</span>{% else %}{{ a.nome }}{% endif %}{% if a.quantidade > 1 %} ({{ a.quantidade }}){% endif %}{{ ',' if not loop.last }}
+                {%- endfor %}
+              </p>
             {% endif %}
             {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
-            <div class="d-flex gap-2 mt-2 flex-wrap">
+            <div class="d-flex gap-2 mt-2 flex-wrap jogo-acoes">
               {% if jogo.local %}
                 <button type="button" class="btn btn-sm btn-outline-brand"
                   onclick='agendaAbrirLocalizacao({{ jogo.local|tojson }}, {{ (jogo.local_mapa_url or "")|tojson }})'>

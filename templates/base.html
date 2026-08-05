@@ -167,8 +167,8 @@
     /* ---------- Cards ---------- */
     .card {
       border: 1px solid rgba(20, 20, 40, .12);
-      border-radius: 14px;
-      box-shadow: 0 4px 18px rgba(20, 20, 40, .1);
+      border-radius: 18px;
+      box-shadow: 0 6px 22px rgba(20, 20, 40, .1);
     }
     [data-bs-theme="dark"] .card {
       border-color: rgba(255, 255, 255, .1);
@@ -177,6 +177,45 @@
     .card-pendente { border-top: 4px solid var(--sao-dourado); }
     .card-cancelado { border-top: 4px solid var(--sao-grena); opacity: 0.85; }
     .card-livre { border-top: 4px solid #d7dbe0; opacity: 0.95; }
+    .card-resultado-vitoria { border-top-color: #1f9d55; }
+    .card-resultado-empate { border-top-color: #8a8f96; }
+    .card-resultado-derrota { border-top-color: #c0392b; }
+    .jogo-card .card-body { padding: 1.15rem; }
+
+    .badge-ao-vivo {
+      background: #e0483a !important;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      letter-spacing: .03em;
+    }
+    .dot-pulso {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #fff;
+      animation: agendaPulso 1.4s ease-in-out infinite;
+    }
+    @keyframes agendaPulso {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.65); }
+    }
+
+    .resultado-chip { font-size: .78rem; padding: .35rem .85rem; }
+
+    .jogo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem 1rem;
+      margin: .85rem 0 .5rem;
+      font-size: .82rem;
+      color: var(--texto-suave);
+    }
+    .jogo-meta-item { display: inline-flex; align-items: center; gap: .38rem; }
+    .jogo-meta-item i { color: var(--sao-verde); font-size: .8rem; }
+    .jogo-meta-item a { color: inherit; text-decoration: underline; text-decoration-color: rgba(0, 0, 0, .25); }
+    [data-bs-theme="dark"] .jogo-meta-item i { color: #6bcf8f; }
+    [data-bs-theme="dark"] .jogo-meta-item a { text-decoration-color: rgba(255, 255, 255, .3); }
+
+    .jogo-acoes .btn { border-radius: 999px; padding: .42rem 1rem; }
 
     /* ---------- Badges & buttons ---------- */
     .badge-confirmado { background: var(--sao-verde) !important; }
@@ -392,9 +431,9 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      gap: 1.5rem;
-      padding: 1.4rem 1rem 1.3rem;
-      border-radius: 20px;
+      gap: 1rem;
+      padding: 1.6rem .9rem 1.4rem;
+      border-radius: 22px;
       overflow: hidden;
       isolation: isolate;
       background: rgba(255, 255, 255, .05);
@@ -441,7 +480,7 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      width: 122px;
+      width: 118px;
       flex-shrink: 0;
     }
     .confronto-escudo-wrap {
@@ -459,28 +498,29 @@
       z-index: -1;
     }
     .confronto-escudo {
-      width: 68px; height: 68px; object-fit: contain;
+      width: 78px; height: 78px; object-fit: contain;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
-      filter: drop-shadow(0 4px 8px rgba(20, 20, 40, .3));
+      filter: drop-shadow(0 5px 10px rgba(20, 20, 40, .32));
     }
     .confronto-nome {
       margin-top: .6rem;
-      font-weight: 700;
-      font-size: .82rem;
+      font-weight: 800;
+      font-size: .85rem;
       line-height: 1.2;
       min-height: 2.15em;
       display: flex;
       align-items: flex-start;
       justify-content: center;
       text-shadow: 0 1px 3px rgba(20, 20, 40, .12);
+      overflow-wrap: break-word;
     }
     .confronto-versus {
       position: relative;
       z-index: 1;
       flex-shrink: 0;
-      width: 38px; height: 38px;
-      margin-top: 15px;
+      width: 40px; height: 40px;
+      margin-top: 20px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 1rem;
@@ -489,18 +529,21 @@
       box-shadow: 0 3px 12px rgba(20, 20, 40, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
       backdrop-filter: blur(8px);
     }
-    .confronto-grande .confronto-escudo { width: 92px; height: 92px; }
-    .confronto-grande .confronto-time { width: 144px; }
+    .confronto-grande .confronto-escudo { width: 112px; height: 112px; }
+    .confronto-grande .confronto-time { width: 160px; }
+    .confronto-grande .confronto-nome { font-size: 1rem; }
     .confronto-placar {
       width: auto;
-      min-width: 38px;
-      height: 38px;
-      padding: 0 .6rem;
+      min-width: 46px;
+      height: 46px;
+      margin-top: 20px;
+      padding: 0 .75rem;
       border-radius: 999px;
-      font-size: .95rem;
+      font-size: 1.2rem;
       font-weight: 800;
       color: #fff !important;
       white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(20, 20, 40, .28), inset 0 1px 0 rgba(255, 255, 255, .35);
     }
     [data-bs-theme="dark"] .confronto {
       background: rgba(255, 255, 255, .07);
@@ -530,6 +573,17 @@
       background: rgba(30, 37, 41, .75);
       color: #cfd6db;
       box-shadow: 0 3px 12px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+    @media (max-width: 480px) {
+      .confronto { gap: 1rem; padding: 1.3rem .75rem; }
+      .confronto-time { width: 96px; }
+      .confronto-escudo { width: 72px; height: 72px; }
+      .confronto-nome { font-size: .78rem; min-height: 1.9em; margin-top: .5rem; }
+      .confronto-versus { width: 38px; height: 38px; margin-top: 14px; font-size: .95rem; }
+      .confronto-placar { min-width: 42px; height: 40px; margin-top: 14px; font-size: 1.05rem; padding: 0 .65rem; }
+      .confronto-grande .confronto-escudo { width: 84px; height: 84px; }
+      .confronto-grande .confronto-time { width: 118px; }
+      .confronto-grande .confronto-nome { font-size: .82rem; }
     }
 
     /* ---------- Dropdown de busca (times/endereços) ---------- */
