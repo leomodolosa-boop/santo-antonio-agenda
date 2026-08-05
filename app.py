@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.5.2"
+APP_VERSION = "3.5.3"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -786,20 +786,33 @@ def times_editar(time_id):
         abort(404)
 
     if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
         cidade = request.form.get("cidade", "").strip()
         contato = request.form.get("contato", "").strip()
         nome_campo = request.form.get("nome_campo", "").strip()
         endereco = request.form.get("endereco", "").strip()
         cep = request.form.get("cep", "").strip()
         campo_mapa_url = request.form.get("campo_mapa_url", "").strip()
-        conn.execute(
-            """
-            UPDATE times SET cidade = ?, contato = ?, nome_campo = ?, endereco = ?, cep = ?, campo_mapa_url = ?
-            WHERE id = ?
-            """,
-            (cidade, contato, nome_campo, endereco, cep or None, campo_mapa_url or None, time_id),
-        )
-        conn.commit()
+
+        if not nome:
+            flash("O nome do time não pode ficar em branco.")
+            time_row = conn.execute("SELECT * FROM times WHERE id = ?", (time_id,)).fetchone()
+            return render_template("time_form.html", time=time_row)
+
+        try:
+            conn.execute(
+                """
+                UPDATE times SET nome = ?, cidade = ?, contato = ?, nome_campo = ?, endereco = ?, cep = ?, campo_mapa_url = ?
+                WHERE id = ?
+                """,
+                (nome, cidade, contato, nome_campo, endereco, cep or None, campo_mapa_url or None, time_id),
+            )
+            conn.commit()
+        except (sqlite3.IntegrityError, ErroIntegridade):
+            flash(f'Já existe um time chamado "{nome}".')
+            time_row = conn.execute("SELECT * FROM times WHERE id = ?", (time_id,)).fetchone()
+            return render_template("time_form.html", time=time_row)
+
         escudo = salvar_escudo(request.files.get("escudo"), time_id, conn)
         if escudo:
             conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo, time_id))
