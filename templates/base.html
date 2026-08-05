@@ -443,6 +443,17 @@
     }
     .confronto-grande .confronto-escudo { width: 92px; height: 92px; }
     .confronto-grande .confronto-time { width: 144px; }
+    .confronto-placar {
+      width: auto;
+      min-width: 38px;
+      height: 38px;
+      padding: 0 .6rem;
+      border-radius: 999px;
+      font-size: .95rem;
+      font-weight: 800;
+      color: #fff !important;
+      white-space: nowrap;
+    }
     [data-bs-theme="dark"] .confronto {
       background: rgba(255, 255, 255, .07);
       border-color: rgba(255, 255, 255, .14);
@@ -967,10 +978,20 @@
       }
       if (artilheiros && artilheiros.length) {
         linhaY += 62;
-        const textoArtilheiros = artilheiros
-          .map((a) => a.nome + (a.quantidade > 1 ? ' (' + a.quantidade + ')' : ''))
-          .join(', ');
-        agendaWrapText(ctx, '⚽  ' + textoArtilheiros, 120, linhaY, W - 260, 46, 'left');
+        const segmentos = [{ texto: '⚽  ', cor: '#ffffff' }];
+        artilheiros.forEach((a, i) => {
+          segmentos.push({
+            texto: a.nome + (a.quantidade > 1 ? ' (' + a.quantidade + ')' : '') + (i < artilheiros.length - 1 ? ', ' : ''),
+            cor: a.nome === 'Contra' ? '#ff6b5e' : '#ffffff',
+          });
+        });
+        ctx.textAlign = 'left';
+        let curX = 120;
+        segmentos.forEach((s) => {
+          ctx.fillStyle = s.cor;
+          ctx.fillText(s.texto, curX, linhaY);
+          curX += ctx.measureText(s.texto).width;
+        });
       }
 
       ctx.textAlign = 'center';

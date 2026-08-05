@@ -214,6 +214,21 @@
             {% set time_b_nome = jogo.adversario_nome if mandante_casa else time_fixo %}
             {% set time_b_escudo = jogo.adversario_escudo if mandante_casa else escudo_fixo %}
             {% set time_b_cor = jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
+            {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
+            {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
+            {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
+            {% if tem_resultado %}
+              {% if jogo.placar_santo > jogo.placar_adversario %}
+                {% set resultado_time_fixo = 'vitoria' %}
+                {% set resultado_label = 'Vitória' %}
+              {% elif jogo.placar_santo == jogo.placar_adversario %}
+                {% set resultado_time_fixo = 'empate' %}
+                {% set resultado_label = 'Empate' %}
+              {% else %}
+                {% set resultado_time_fixo = 'derrota' %}
+                {% set resultado_label = 'Derrota' %}
+              {% endif %}
+            {% endif %}
             <div class="confronto my-3"
                  style="--pos-santo: {{ '22%' if mandante_casa else '78%' }}; --pos-adv: {{ '78%' if mandante_casa else '22%' }}; {% set cor_adversario = time_b_cor if mandante_casa else time_a_cor %}{% if cor_adversario %}--cor-adv-rgb: {{ cor_adversario|hex_para_rgb }};{% endif %}">
               <div class="confronto-time">
@@ -226,7 +241,11 @@
                 </div>
                 <small class="confronto-nome">{{ time_a_nome }}</small>
               </div>
-              <span class="confronto-versus">×</span>
+              {% if tem_resultado %}
+                <span class="confronto-versus confronto-placar badge-{{ resultado_time_fixo }}">{{ placar_a }} × {{ placar_b }}</span>
+              {% else %}
+                <span class="confronto-versus">×</span>
+              {% endif %}
               <div class="confronto-time">
                 <div class="confronto-escudo-wrap">
                 {% if time_b_escudo %}
@@ -253,18 +272,7 @@
                 {% endif %}
               </p>
             {% endif %}
-            {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
             {% if tem_resultado %}
-              {% if jogo.placar_santo > jogo.placar_adversario %}
-                {% set resultado_time_fixo = 'vitoria' %}
-                {% set resultado_label = 'Vitória' %}
-              {% elif jogo.placar_santo == jogo.placar_adversario %}
-                {% set resultado_time_fixo = 'empate' %}
-                {% set resultado_label = 'Empate' %}
-              {% else %}
-                {% set resultado_time_fixo = 'derrota' %}
-                {% set resultado_label = 'Derrota' %}
-              {% endif %}
               <p class="mb-1 d-flex align-items-center gap-2 flex-wrap">
                 Placar: <strong>{{ jogo.placar_santo }} x {{ jogo.placar_adversario }}</strong>
                 <span class="badge rounded-pill badge-{{ resultado_time_fixo }}">{{ resultado_label }}</span>
@@ -273,7 +281,7 @@
                 <p class="mb-1 text-secondary small">
                   <i class="bi bi-dribbble"></i> Gols:
                   {%- for a in artilheiros_por_jogo[jogo.id] %}
-                    {{ a.nome }}{% if a.quantidade > 1 %} ({{ a.quantidade }}){% endif %}{{ ',' if not loop.last }}
+                    {% if a.nome == 'Contra' %}<span class="text-danger fw-semibold">Contra</span>{% else %}{{ a.nome }}{% endif %}{% if a.quantidade > 1 %} ({{ a.quantidade }}){% endif %}{{ ',' if not loop.last }}
                   {%- endfor %}
                 </p>
               {% endif %}
@@ -292,8 +300,6 @@
                 </button>
               {% endif %}
               {% if jogo.status == 'confirmado' %}
-                {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
-                {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
                 <button type="button" class="btn btn-sm btn-brand"
                   data-time-fixo="{{ time_a_nome }}"
                   data-escudo-fixo="{{ url_for('static', filename='escudos/' ~ time_a_escudo) if time_a_escudo else '' }}"

@@ -132,7 +132,8 @@
                 <select class="form-select" name="gol_jogador">
                   <option value="">Selecione o jogador</option>
                   {% for j in jogadores_ativos %}
-                    <option value="{{ j.id }}" {% if j.id == g.jogador_id %}selected{% endif %}>{{ j.apelido or j.nome_completo }}</option>
+                    <option value="{{ j.id }}" {% if j.id == g.jogador_id %}selected{% endif %}
+                      {% if j.nome_completo == 'Contra' %}style="color:#c0392b;font-weight:700"{% endif %}>{{ j.apelido or j.nome_completo }}</option>
                   {% endfor %}
                 </select>
               </div>
@@ -159,7 +160,7 @@
             <select class="form-select" name="gol_jogador">
               <option value="">Selecione o jogador</option>
               {% for j in jogadores_ativos %}
-                <option value="{{ j.id }}">{{ j.apelido or j.nome_completo }}</option>
+                <option value="{{ j.id }}" {% if j.nome_completo == 'Contra' %}style="color:#c0392b;font-weight:700"{% endif %}>{{ j.apelido or j.nome_completo }}</option>
               {% endfor %}
             </select>
           </div>
