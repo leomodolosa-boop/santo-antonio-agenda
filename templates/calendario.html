@@ -18,6 +18,14 @@
         </a>
       </div>
     </div>
+    {% set meses_abrev = ['Ja', 'Fe', 'Ma', 'Ab', 'Mai', 'Jun', 'Jul', 'Ag', 'Se', 'Ou', 'No', 'Dez'] %}
+    <div class="mes-nav mt-3">
+      {% for abrev in meses_abrev %}
+        {% set num_mes = loop.index %}
+        <a class="mes-nav-item {{ 'active' if num_mes == mes else '' }}"
+           href="{{ url_for('calendario', ano=ano, mes=num_mes) }}">{{ abrev }}</a>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}

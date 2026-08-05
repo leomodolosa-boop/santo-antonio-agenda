@@ -243,6 +243,38 @@
 
     .pill-nav .btn { border-radius: 999px; }
 
+    .mes-nav {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: .4rem;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .mes-nav::-webkit-scrollbar { display: none; }
+    .mes-nav-item {
+      flex-shrink: 0;
+      padding: .4rem .85rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: .85rem;
+      color: rgba(255, 255, 255, .85);
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .18);
+      text-decoration: none;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+    }
+    .mes-nav-item:hover {
+      background: rgba(255, 255, 255, .22);
+      color: #fff;
+    }
+    .mes-nav-item.active {
+      background: var(--sao-dourado);
+      border-color: var(--sao-dourado);
+      color: #3a2e00;
+      box-shadow: 0 3px 10px rgba(201, 162, 39, .4);
+    }
+
     .escudo-circulo {
       width: 46px; height: 46px; border-radius: 12px;
       object-fit: contain; background: #fff; border: 1px solid #e3e6ea;
