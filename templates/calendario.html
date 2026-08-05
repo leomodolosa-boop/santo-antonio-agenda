@@ -318,14 +318,14 @@
                   onclick="compartilharJogo(this)">
                   <i class="bi bi-share"></i> Compartilhar
                 </button>
-                {% if mandante_casa and usuario_logado %}
+                {% if usuario_logado %}
                   <button type="button" class="btn btn-sm btn-outline-brand"
                     data-time-fixo="{{ time_fixo }}"
                     data-adversario="{{ jogo.adversario_nome }}"
                     data-data="{{ d.strftime('%d/%m') }}"
                     data-hora="{{ jogo.hora or '' }}"
                     data-local="{{ jogo.local or '' }}"
-                    data-local-mapa-url-fixo="{{ campo_mapa_url_fixo or '' }}"
+                    {% if mandante_casa %}data-local-mapa-url-fixo="{{ campo_mapa_url_fixo or '' }}"{% endif %}
                     onclick="compartilharListaPresenca(this)">
                     <i class="bi bi-clipboard-check"></i> Lista de presença
                   </button>

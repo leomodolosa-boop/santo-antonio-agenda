@@ -1145,6 +1145,14 @@
       return h + 'h' + (m ? String(m).padStart(2, '0') : '');
     }
 
+    function agendaAbreviarNome(nome) {
+      if (!nome) return nome;
+      const LIMITE = 18;
+      if (nome.length <= LIMITE) return nome;
+      const palavras = nome.split(' ');
+      return palavras.slice(0, 2).join(' ');
+    }
+
     async function compartilharListaPresenca(btn) {
       const d = btn.dataset;
       const textoOriginal = btn.innerHTML;
@@ -1153,11 +1161,14 @@
       try {
         const linhas = [];
         for (let i = 1; i <= 18; i++) linhas.push(i + '-');
+        const timeFixo = agendaAbreviarNome(d.timeFixo).toUpperCase();
+        const adversario = agendaAbreviarNome(d.adversario).toUpperCase();
+        const local = agendaAbreviarNome(d.local).toUpperCase();
         let texto = '📋 Lista de Presença\n' +
-          '⚽ Jogo: ' + d.timeFixo + ' x ' + d.adversario + '\n' +
+          '⚽ Jogo: ' + timeFixo + ' x ' + adversario + '\n' +
           '📅 Data: Sábado, ' + d.data + '\n' +
           (d.hora ? '⏰ Horário: ' + agendaFormatarHora(d.hora) + '\n' : '') +
-          '📍 Local: ' + d.local;
+          '📍 Local: ' + local;
         if (d.localMapaUrlFixo) {
           texto += '\n' + d.localMapaUrlFixo;
         }
