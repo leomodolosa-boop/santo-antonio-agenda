@@ -55,10 +55,16 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="form-label">Município</label>
-          <div class="input-group">
-            <span class="input-group-text bg-white"><i class="bi bi-geo"></i></span>
-            <input type="text" class="form-control" name="cidade" id="cidade_input" value="{{ time.cidade or '' }}" placeholder="Ex: Venda Nova do Imigrante">
+          <div class="position-relative" data-picker-wrapper>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-geo"></i></span>
+              <input type="text" class="form-control" name="cidade" id="cidade_input" autocomplete="off"
+                     value="{{ time.cidade or '' }}" placeholder="Digite o município (ES)..."
+                     oninput="agendaBuscarMunicipioES(this.value)">
+            </div>
+            <div id="lista-municipios-flutuante" class="time-picker-dropdown"></div>
           </div>
+          <div class="form-text" id="municipio_status">Busca os municípios do Espírito Santo e preenche o CEP.</div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="form-label">Nome do campo</label>
@@ -133,6 +139,70 @@
         enderecoInput.value = [dados.logradouro, dados.bairro].filter(Boolean).join(', ');
       }
       status.textContent = 'Endereço encontrado!';
+    } catch (e) {
+      status.textContent = 'Não foi possível buscar o CEP agora.';
+    }
+  }
+
+  let agendaMunicipiosES = null;
+  let agendaBuscaMunicipioTimeout = null;
+
+  async function agendaCarregarMunicipiosES() {
+    if (agendaMunicipiosES) return agendaMunicipiosES;
+    try {
+      const resp = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/ES/municipios');
+      const dados = await resp.json();
+      agendaMunicipiosES = dados.map((m) => m.nome);
+    } catch (e) {
+      agendaMunicipiosES = [];
+    }
+    return agendaMunicipiosES;
+  }
+
+  function agendaBuscarMunicipioES(termo) {
+    clearTimeout(agendaBuscaMunicipioTimeout);
+    const lista = document.getElementById('lista-municipios-flutuante');
+    if (!termo || termo.trim().length < 2) {
+      lista.classList.remove('aberta');
+      lista.innerHTML = '';
+      return;
+    }
+    agendaBuscaMunicipioTimeout = setTimeout(async function () {
+      const municipios = await agendaCarregarMunicipiosES();
+      const termoBusca = termo.toLowerCase();
+      const resultados = municipios.filter((nome) => nome.toLowerCase().indexOf(termoBusca) !== -1);
+      lista.innerHTML = '';
+      if (!resultados.length) {
+        lista.classList.remove('aberta');
+        return;
+      }
+      resultados.slice(0, 8).forEach((nome) => {
+        const item = document.createElement('div');
+        item.className = 'time-picker-item';
+        item.innerHTML = '<i class="bi bi-geo-alt text-secondary"></i><span>' + nome + ' - ES</span>';
+        item.onclick = function () { agendaSelecionarMunicipioES(nome); };
+        lista.appendChild(item);
+      });
+      lista.classList.add('aberta');
+    }, 300);
+  }
+
+  async function agendaSelecionarMunicipioES(nome) {
+    document.getElementById('cidade_input').value = nome + ' - ES';
+    document.getElementById('lista-municipios-flutuante').classList.remove('aberta');
+    const status = document.getElementById('municipio_status');
+    status.textContent = 'Buscando CEP de ' + nome + '...';
+    try {
+      const resp = await fetch(
+        'https://viacep.com.br/ws/ES/' + encodeURIComponent(nome) + '/Centro/json/'
+      );
+      const dados = await resp.json();
+      if (Array.isArray(dados) && dados.length) {
+        document.getElementById('cep_input').value = dados[0].cep;
+        status.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> CEP aproximado (Centro) preenchido — confira antes de salvar.';
+      } else {
+        status.textContent = 'Não encontrei um CEP automático pra esse município — preencha manualmente.';
+      }
     } catch (e) {
       status.textContent = 'Não foi possível buscar o CEP agora.';
     }
