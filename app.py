@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.8.2"
+APP_VERSION = "3.8.3"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -763,6 +763,7 @@ def artilharia():
     top_artilheiros = [
         {
             "nome": row["apelido"] or row["nome_completo"],
+            "nome_completo": row["nome_completo"] if row["apelido"] else "",
             "gols": row["total_gols"],
             "jogos": row["jogos_marcou"],
             "foto": url_for("static", filename="jogadores/" + row["foto"]) if row["foto"] else "",

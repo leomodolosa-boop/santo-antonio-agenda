@@ -1458,14 +1458,23 @@
 
         agendaDesenharFotoCircular(ctx, imagensJogadores[i], cx, cy, 44);
 
+        const temNomeCompleto = !!j.nome_completo;
+        const nomeY = temNomeCompleto ? cy - 20 : cy - 6;
+
         ctx.textAlign = 'left';
         ctx.fillStyle = '#ffffff';
         ctx.font = i < 3 ? '700 34px Inter, sans-serif' : '600 32px Inter, sans-serif';
-        ctx.fillText(j.nome, cx + 70, cy - 6);
+        ctx.fillText(j.nome, cx + 70, nomeY);
+
+        if (temNomeCompleto) {
+          ctx.font = '400 22px Inter, sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,.55)';
+          ctx.fillText(j.nome_completo, cx + 70, nomeY + 28);
+        }
 
         ctx.font = '400 24px Inter, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,.6)';
-        ctx.fillText(j.jogos + ' jogo' + (j.jogos === 1 ? '' : 's'), cx + 70, cy + 28);
+        ctx.fillText(j.jogos + ' jogo' + (j.jogos === 1 ? '' : 's'), cx + 70, nomeY + (temNomeCompleto ? 56 : 34));
 
         ctx.textAlign = 'right';
         ctx.font = '800 46px Inter, sans-serif';
