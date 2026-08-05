@@ -16,11 +16,19 @@
 <div class="card mb-4">
   <div class="card-body p-4">
     <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo time</h5>
-    <p class="text-muted small mb-3">Depois de adicionar, use "Editar" na lista para completar município, nome do campo e endereço.</p>
+    <p class="text-muted small mb-3">
+      Depois de adicionar, use "Editar" na lista para completar município, nome do campo e endereço.
+      Pra <strong>corrigir o nome</strong> de um time que já existe, use "Editar" nele — não cadastre de novo aqui,
+      senão fica duplicado.
+    </p>
     <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="col-md-5">
-        <input type="text" class="form-control" name="nome" placeholder="Nome do time" required>
+        <div class="position-relative" data-picker-wrapper>
+          <input type="text" class="form-control" name="nome" id="nome_time_novo" placeholder="Nome do time" required
+                 autocomplete="off" oninput="agendaVerificarTimeDuplicado(this)">
+          <div class="time-picker-dropdown" id="lista-times-duplicados"></div>
+        </div>
       </div>
       <div class="col-md-5">
         <input type="file" class="form-control" name="escudo" accept="image/png, image/jpeg, image/webp">
@@ -31,6 +39,39 @@
     </form>
   </div>
 </div>
+
+<script>
+  const AGENDA_TIMES_CADASTRADOS = [
+    {% for t in times %}
+    { id: {{ t.id }}, nome: {{ t.nome | tojson }} },
+    {% endfor %}
+  ];
+
+  function agendaVerificarTimeDuplicado(input) {
+    const lista = document.getElementById('lista-times-duplicados');
+    const termo = input.value.toLowerCase().trim();
+    lista.innerHTML = '';
+    if (termo.length < 2) {
+      lista.classList.remove('aberta');
+      return;
+    }
+    const resultados = AGENDA_TIMES_CADASTRADOS.filter((t) => t.nome.toLowerCase().indexOf(termo) !== -1);
+    if (!resultados.length) {
+      lista.classList.remove('aberta');
+      return;
+    }
+    resultados.forEach((t) => {
+      const item = document.createElement('div');
+      item.className = 'time-picker-item';
+      item.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning"></i> <span>Já cadastrado: ' + t.nome + '</span>';
+      item.onclick = function () {
+        window.location = '/times/' + t.id + '/editar';
+      };
+      lista.appendChild(item);
+    });
+    lista.classList.add('aberta');
+  }
+</script>
 {% endif %}
 
 <div class="card d-none d-md-block">

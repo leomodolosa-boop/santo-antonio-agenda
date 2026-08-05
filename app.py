@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.8.1"
+APP_VERSION = "3.8.2"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -823,6 +823,8 @@ def times():
                 if escudo:
                     conn.execute("UPDATE times SET escudo = ? WHERE id = ?", (escudo, novo_id))
                     conn.commit()
+            else:
+                flash(f'Já existe um time chamado "{nome}" — use "Editar" nele em vez de cadastrar de novo.')
 
     lista = conn.execute("SELECT * FROM times ORDER BY is_fixo DESC, nome").fetchall()
     return render_template("times.html", times=lista)

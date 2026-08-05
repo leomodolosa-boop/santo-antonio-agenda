@@ -486,9 +486,12 @@ def init_db():
                 conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} INTEGER NOT NULL DEFAULT 1")
         conn.commit()
 
-    existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}
-    for nome in TIMES_INICIAIS:
-        if nome not in existentes:
+    # Só semeia os times iniciais se a tabela estiver vazia (primeiro boot).
+    # Antes isso rodava sempre que faltasse um NOME da lista — o que recriava
+    # um time "do zero" toda vez que alguém corrigia o nome dele e o app
+    # reiniciava (cada deploy no Render reinicia o processo).
+    if not conn.execute("SELECT 1 FROM times LIMIT 1").fetchone():
+        for nome in TIMES_INICIAIS:
             conn.execute(
                 "INSERT INTO times (nome, is_fixo) VALUES (?, ?)",
                 (nome, 1 if nome == TIME_FIXO else 0),
