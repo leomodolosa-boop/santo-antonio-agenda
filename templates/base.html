@@ -351,6 +351,15 @@
     .artilheiro-stat { text-align: center; min-width: 42px; }
     .artilheiro-stat-valor { font-weight: 800; font-size: 1.15rem; color: var(--sao-verde); }
     .artilheiro-stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); }
+    @media (max-width: 420px) {
+      .artilheiro-linha { gap: .6rem; padding: .8rem .5rem; }
+      .artilheiro-foto { width: 44px; height: 44px; }
+      .artilheiro-info { flex-basis: 90px; }
+      .artilheiro-stats { gap: .7rem; }
+      .artilheiro-stat { min-width: 30px; }
+      .artilheiro-stat-valor { font-size: .95rem; }
+      .artilheiro-stat-label { font-size: .58rem; }
+    }
     [data-bs-theme="dark"] .artilheiro-linha:not(:last-child) { border-bottom-color: #2c353b; }
     [data-bs-theme="dark"] .artilheiro-linha:hover { background: rgba(255, 255, 255, .04); }
     [data-bs-theme="dark"] .artilheiro-podio-1 { background: rgba(255, 215, 106, .07); }
