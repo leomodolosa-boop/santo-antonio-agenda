@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.7.0"
+APP_VERSION = "3.6.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -98,21 +98,6 @@ def master_obrigatorio(funcao):
     return envolvida
 
 
-def dono_obrigatorio(funcao):
-    """Mais restrito que master_obrigatorio: só a conta que criou o
-    sistema (a primeira cadastrada) pode acessar — nem outro master."""
-    @functools.wraps(funcao)
-    def envolvida(*args, **kwargs):
-        conn = get_db()
-        usuario = usuario_logado()
-        dono = conn.execute("SELECT id FROM usuarios ORDER BY id LIMIT 1").fetchone()
-        if not usuario or not dono or usuario["id"] != dono["id"]:
-            flash("Apenas o administrador principal pode acessar essa página.")
-            return redirect(url_for("login", proximo=request.full_path))
-        return funcao(*args, **kwargs)
-    return envolvida
-
-
 @app.template_filter("hex_para_rgb")
 def hex_para_rgb(cor_hex):
     """'#1f6feb' -> '31,111,235', pra usar em rgba(var(--x), alfa) no CSS."""
@@ -129,11 +114,9 @@ def injetar_contexto_global():
     row_escudo = conn.execute(
         "SELECT escudo, escudo_cor, campo_mapa_url FROM times WHERE is_fixo = 1"
     ).fetchone()
-    dono = conn.execute("SELECT id FROM usuarios ORDER BY id LIMIT 1").fetchone()
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
-        "eh_dono": bool(usuario and dono and usuario["id"] == dono["id"]),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
@@ -207,7 +190,7 @@ def logout():
 
 
 @app.route("/usuarios", methods=["GET", "POST"])
-@dono_obrigatorio
+@master_obrigatorio
 def usuarios():
     conn = get_db()
     erro = None
@@ -238,7 +221,7 @@ def usuarios():
 
 
 @app.route("/usuarios/<int:usuario_id>/excluir", methods=["POST"])
-@dono_obrigatorio
+@master_obrigatorio
 def usuarios_excluir(usuario_id):
     if usuario_id == session.get("usuario_id"):
         flash("Você não pode excluir seu próprio usuário enquanto estiver logado com ele.")

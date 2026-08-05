@@ -714,19 +714,19 @@
           <a class="nav-link-custom {{ 'active' if request.endpoint in ('index','calendario') }}" href="{{ url_for('index') }}">
             <i class="bi bi-calendar3"></i> Calendário
           </a>
-          {% if eh_dono %}
-            <a class="nav-link-custom {{ 'active' if request.endpoint == 'historico' }}" href="{{ url_for('historico') }}">
-              <i class="bi bi-clock-history"></i> Histórico
-            </a>
-            <a class="nav-link-custom {{ 'active' if request.endpoint in ('times','times_editar') }}" href="{{ url_for('times') }}">
-              <i class="bi bi-shield"></i> Times
-            </a>
-            <a class="nav-link-custom {{ 'active' if request.endpoint in ('jogadores','jogadores_editar') }}" href="{{ url_for('jogadores') }}">
-              <i class="bi bi-person-badge"></i> Jogadores
-            </a>
-            <a class="nav-link-custom {{ 'active' if request.endpoint == 'artilharia' }}" href="{{ url_for('artilharia') }}">
-              <i class="bi bi-trophy"></i> Artilharia
-            </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint == 'historico' }}" href="{{ url_for('historico') }}">
+            <i class="bi bi-clock-history"></i> Histórico
+          </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint in ('times','times_editar') }}" href="{{ url_for('times') }}">
+            <i class="bi bi-shield"></i> Times
+          </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint in ('jogadores','jogadores_editar') }}" href="{{ url_for('jogadores') }}">
+            <i class="bi bi-person-badge"></i> Jogadores
+          </a>
+          <a class="nav-link-custom {{ 'active' if request.endpoint == 'artilharia' }}" href="{{ url_for('artilharia') }}">
+            <i class="bi bi-trophy"></i> Artilharia
+          </a>
+          {% if eh_master %}
             <a class="nav-link-custom {{ 'active' if request.endpoint == 'usuarios' }}" href="{{ url_for('usuarios') }}">
               <i class="bi bi-people"></i> Usuários
             </a>
