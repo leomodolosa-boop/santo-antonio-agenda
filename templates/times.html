@@ -43,7 +43,7 @@
         <th>Município</th>
         <th>Campo</th>
         <th>Endereço</th>
-        <th>Contato</th>
+        {% if eh_master %}<th>Contato</th>{% endif %}
         <th class="text-end">Ações</th>
       </tr>
     </thead>
@@ -64,7 +64,7 @@
         <td class="text-secondary">{{ t.cidade or '—' }}</td>
         <td class="text-secondary">{{ t.nome_campo or '—' }}</td>
         <td class="text-secondary">{{ t.endereco or '—' }}</td>
-        <td class="text-secondary">{{ t.contato or '—' }}</td>
+        {% if eh_master %}<td class="text-secondary">{{ t.contato or '—' }}</td>{% endif %}
         <td class="text-end">
           {% if eh_master %}
           <div class="d-flex gap-2 justify-content-end">
