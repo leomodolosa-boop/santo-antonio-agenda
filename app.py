@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.6.0"
+APP_VERSION = "3.6.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -320,7 +320,7 @@ def sabados_do_mes(ano, mes):
     ]
 
 
-def buscar_proximo_jogo():
+def buscar_proximo_jogo(apenas_confirmados=False):
     conn = get_db()
     agora = datetime.now()
     # Depois das 18:30, o jogo de hoje já é considerado encerrado e some
@@ -329,11 +329,12 @@ def buscar_proximo_jogo():
         data_minima = (agora.date() + timedelta(days=1)).isoformat()
     else:
         data_minima = agora.date().isoformat()
+    filtro_status = "jogos.status = 'confirmado'" if apenas_confirmados else "jogos.status != 'cancelado'"
     jogo = conn.execute(
-        """
+        f"""
         SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor
         FROM jogos JOIN times ON times.id = jogos.adversario_id
-        WHERE jogos.data >= ? AND jogos.status != 'cancelado'
+        WHERE jogos.data >= ? AND {filtro_status}
         ORDER BY jogos.data ASC
         LIMIT 1
         """,
@@ -428,6 +429,16 @@ def calendario(ano, mes):
         ).fetchall()
         jogos_por_data = {linha["data"]: linha for linha in linhas}
 
+    # Jogos futuros ainda pendentes de confirmação só aparecem pra quem
+    # está logado — visitante anônimo não vê compromisso que pode nem sair.
+    if not usuario_logado():
+        hoje_iso = date.today().isoformat()
+        jogos_por_data = {
+            data: linha
+            for data, linha in jogos_por_data.items()
+            if not (linha["status"] == "pendente" and data >= hoje_iso)
+        }
+
     jogos_com_resultado = [
         linha["id"] for linha in jogos_por_data.values() if linha["placar_santo"] is not None
     ]
@@ -454,7 +465,7 @@ def calendario(ano, mes):
     next_ano = ano if mes < 12 else ano + 1
 
     proximo_livre = proximo_sabado_sem_jogo()
-    proximo_jogo = buscar_proximo_jogo()
+    proximo_jogo = buscar_proximo_jogo(apenas_confirmados=not usuario_logado())
     dias_para_proximo_jogo = None
     if proximo_jogo:
         dias_para_proximo_jogo = (date.fromisoformat(proximo_jogo["data"]) - date.today()).days
