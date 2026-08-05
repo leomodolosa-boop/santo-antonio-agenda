@@ -318,7 +318,7 @@
                   onclick="compartilharJogo(this)">
                   <i class="bi bi-share"></i> Compartilhar
                 </button>
-                {% if mandante_casa %}
+                {% if mandante_casa and usuario_logado %}
                   <button type="button" class="btn btn-sm btn-outline-brand"
                     data-time-fixo="{{ time_fixo }}"
                     data-adversario="{{ jogo.adversario_nome }}"
