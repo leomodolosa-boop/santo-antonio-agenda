@@ -19,7 +19,7 @@
       </div>
     </div>
     {% set meses_abrev = ['Ja', 'Fe', 'Ma', 'Ab', 'Mai', 'Jun', 'Jul', 'Ag', 'Se', 'Ou', 'No', 'Dez'] %}
-    <div class="mes-nav mt-3">
+    <div class="mes-nav mt-3" id="mes-nav">
       {% for abrev in meses_abrev %}
         {% set num_mes = loop.index %}
         <a class="mes-nav-item {{ 'active' if num_mes == mes else '' }}"
@@ -28,6 +28,16 @@
     </div>
   </div>
 </div>
+<script>
+  (function () {
+    var nav = document.getElementById('mes-nav');
+    var ativo = nav && nav.querySelector('.mes-nav-item.active');
+    if (nav && ativo) {
+      var alvo = ativo.offsetLeft - (nav.clientWidth / 2) + (ativo.offsetWidth / 2);
+      nav.scrollTo({ left: Math.max(alvo, 0), behavior: 'auto' });
+    }
+  })();
+</script>
 {% endblock %}
 
 {% block content %}
