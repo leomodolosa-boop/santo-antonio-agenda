@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.7.1"
+APP_VERSION = "3.8.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -82,20 +82,28 @@ def usuario_logado():
     if "usuario_atual" not in g:
         conn = get_db()
         g.usuario_atual = conn.execute(
-            "SELECT id, nome, usuario, perfil FROM usuarios WHERE id = ?", (session["usuario_id"],)
+            """
+            SELECT id, nome, usuario, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios
+            FROM usuarios WHERE id = ?
+            """,
+            (session["usuario_id"],),
         ).fetchone()
     return g.usuario_atual
 
 
-def master_obrigatorio(funcao):
-    @functools.wraps(funcao)
-    def envolvida(*args, **kwargs):
-        usuario = usuario_logado()
-        if not usuario or usuario["perfil"] != "master":
-            flash("Você precisa entrar como administrador para fazer isso.")
-            return redirect(url_for("login", proximo=request.full_path))
-        return funcao(*args, **kwargs)
-    return envolvida
+def permissao_obrigatoria(chave):
+    """Exige login e que a conta tenha a permissão específica marcada
+    (perm_jogos/perm_times/perm_jogadores/perm_usuarios)."""
+    def decorador(funcao):
+        @functools.wraps(funcao)
+        def envolvida(*args, **kwargs):
+            usuario = usuario_logado()
+            if not usuario or not usuario[chave]:
+                flash("Você não tem permissão pra fazer isso.")
+                return redirect(url_for("login", proximo=request.full_path))
+            return funcao(*args, **kwargs)
+        return envolvida
+    return decorador
 
 
 @app.template_filter("hex_para_rgb")
@@ -117,6 +125,10 @@ def injetar_contexto_global():
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
+        "perm_jogos": bool(usuario and usuario["perm_jogos"]),
+        "perm_times": bool(usuario and usuario["perm_times"]),
+        "perm_jogadores": bool(usuario and usuario["perm_jogadores"]),
+        "perm_usuarios": bool(usuario and usuario["perm_usuarios"]),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
@@ -144,7 +156,10 @@ def configurar_master():
             erro = validar_senha_forte(senha)
         else:
             conn.execute(
-                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, 'master')",
+                """
+                INSERT INTO usuarios (nome, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios)
+                VALUES (?, ?, ?, 'master', 1, 1, 1, 1)
+                """,
                 (nome, usuario_login, generate_password_hash(senha)),
             )
             conn.commit()
@@ -190,7 +205,7 @@ def logout():
 
 
 @app.route("/usuarios", methods=["GET", "POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_usuarios")
 def usuarios():
     conn = get_db()
     erro = None
@@ -199,6 +214,10 @@ def usuarios():
         email = request.form.get("email", "").strip()
         usuario_login = request.form.get("usuario", "").strip().lower()
         senha = request.form.get("senha", "")
+        perm_jogos = 1 if request.form.get("perm_jogos") else 0
+        perm_times = 1 if request.form.get("perm_times") else 0
+        perm_jogadores = 1 if request.form.get("perm_jogadores") else 0
+        perm_usuarios = 1 if request.form.get("perm_usuarios") else 0
 
         if not nome or not usuario_login or not senha:
             erro = "Preencha nome, usuário e senha."
@@ -206,11 +225,14 @@ def usuarios():
             erro = validar_senha_forte(senha)
         else:
             try:
-                # Toda conta criada aqui recebe acesso completo (master),
-                # igual ao do administrador que a criou.
                 conn.execute(
-                    "INSERT INTO usuarios (nome, email, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?, 'master')",
-                    (nome, email, usuario_login, generate_password_hash(senha)),
+                    """
+                    INSERT INTO usuarios
+                        (nome, email, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios)
+                    VALUES (?, ?, ?, ?, 'master', ?, ?, ?, ?)
+                    """,
+                    (nome, email, usuario_login, generate_password_hash(senha),
+                     perm_jogos, perm_times, perm_jogadores, perm_usuarios),
                 )
                 conn.commit()
             except (sqlite3.IntegrityError, ErroIntegridade):
@@ -221,7 +243,7 @@ def usuarios():
 
 
 @app.route("/usuarios/<int:usuario_id>/excluir", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_usuarios")
 def usuarios_excluir(usuario_id):
     if usuario_id == session.get("usuario_id"):
         flash("Você não pode excluir seu próprio usuário enquanto estiver logado com ele.")
@@ -494,7 +516,7 @@ def calendario(ano, mes):
 
 
 @app.route("/jogo/novo", methods=["GET", "POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogos")
 def jogo_novo():
     conn = get_db()
     data_str = request.values.get("data") or proximo_sabado_sem_jogo().isoformat()
@@ -557,7 +579,7 @@ def jogo_novo():
 
 
 @app.route("/jogo/<int:jogo_id>/editar", methods=["GET", "POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogos")
 def jogo_editar(jogo_id):
     conn = get_db()
 
@@ -675,19 +697,19 @@ def _mudar_status_jogo(jogo_id, novo_status):
 
 
 @app.route("/jogo/<int:jogo_id>/confirmar", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogos")
 def jogo_confirmar(jogo_id):
     return _mudar_status_jogo(jogo_id, "confirmado")
 
 
 @app.route("/jogo/<int:jogo_id>/cancelar", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogos")
 def jogo_cancelar(jogo_id):
     return _mudar_status_jogo(jogo_id, "cancelado")
 
 
 @app.route("/jogo/<int:jogo_id>/reabrir", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogos")
 def jogo_reabrir(jogo_id):
     return _mudar_status_jogo(jogo_id, "pendente")
 
@@ -761,8 +783,8 @@ def times():
     conn = get_db()
     if request.method == "POST":
         usuario = usuario_logado()
-        if not usuario or usuario["perfil"] != "master":
-            flash("Você precisa entrar como administrador para fazer isso.")
+        if not usuario or not usuario["perm_times"]:
+            flash("Você não tem permissão pra fazer isso.")
             return redirect(url_for("login", proximo=request.full_path))
         nome = request.form.get("nome", "").strip()
         cidade = request.form.get("cidade", "").strip()
@@ -807,7 +829,7 @@ def times():
 
 
 @app.route("/times/<int:time_id>/editar", methods=["GET", "POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_times")
 def times_editar(time_id):
     conn = get_db()
 
@@ -856,7 +878,7 @@ def times_editar(time_id):
 
 
 @app.route("/times/<int:time_id>/excluir", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_times")
 def times_excluir(time_id):
     conn = get_db()
     time_row = conn.execute("SELECT is_fixo, nome FROM times WHERE id = ?", (time_id,)).fetchone()
@@ -882,8 +904,8 @@ def jogadores():
     conn = get_db()
     if request.method == "POST":
         usuario = usuario_logado()
-        if not usuario or usuario["perfil"] != "master":
-            flash("Você precisa entrar como administrador para fazer isso.")
+        if not usuario or not usuario["perm_jogadores"]:
+            flash("Você não tem permissão pra fazer isso.")
             return redirect(url_for("login", proximo=request.full_path))
         nome_completo = request.form.get("nome_completo", "").strip()
         apelido = request.form.get("apelido", "").strip()
@@ -913,7 +935,7 @@ def jogadores():
 
 
 @app.route("/jogadores/<int:jogador_id>/editar", methods=["GET", "POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogadores")
 def jogadores_editar(jogador_id):
     conn = get_db()
     jogador_row = conn.execute("SELECT * FROM jogadores WHERE id = ?", (jogador_id,)).fetchone()
@@ -944,7 +966,7 @@ def jogadores_editar(jogador_id):
 
 
 @app.route("/jogadores/<int:jogador_id>/excluir", methods=["POST"])
-@master_obrigatorio
+@permissao_obrigatoria("perm_jogadores")
 def jogadores_excluir(jogador_id):
     conn = get_db()
     jogador_row = conn.execute("SELECT nome_completo FROM jogadores WHERE id = ?", (jogador_id,)).fetchone()

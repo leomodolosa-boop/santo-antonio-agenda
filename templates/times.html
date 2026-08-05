@@ -12,7 +12,7 @@
 
 {% block content %}
 
-{% if eh_master %}
+{% if perm_times %}
 <div class="card mb-4">
   <div class="card-body p-4">
     <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo time</h5>
@@ -43,7 +43,7 @@
         <th>Município</th>
         <th>Campo</th>
         <th>Endereço</th>
-        {% if eh_master %}<th>Contato</th>{% endif %}
+        {% if perm_times %}<th>Contato</th>{% endif %}
         <th class="text-end">Ações</th>
       </tr>
     </thead>
@@ -64,9 +64,9 @@
         <td class="text-secondary">{{ t.cidade or '—' }}</td>
         <td class="text-secondary">{{ t.nome_campo or '—' }}</td>
         <td class="text-secondary">{{ t.endereco or '—' }}</td>
-        {% if eh_master %}<td class="text-secondary">{{ t.contato or '—' }}</td>{% endif %}
+        {% if perm_times %}<td class="text-secondary">{{ t.contato or '—' }}</td>{% endif %}
         <td class="text-end">
-          {% if eh_master %}
+          {% if perm_times %}
           <div class="d-flex gap-2 justify-content-end">
             <a href="{{ url_for('times_editar', time_id=t.id) }}" class="btn btn-sm btn-outline-brand">
               <i class="bi bi-pencil"></i> Editar
@@ -89,8 +89,8 @@
 
 <div class="card d-md-none">
   {% for t in times %}
-  <div class="time-linha-mobile{% if eh_master %} time-linha-clicavel{% endif %}"
-       {% if eh_master %}ondblclick="window.location='{{ url_for('times_editar', time_id=t.id) }}'"{% endif %}>
+  <div class="time-linha-mobile{% if perm_times %} time-linha-clicavel{% endif %}"
+       {% if perm_times %}ondblclick="window.location='{{ url_for('times_editar', time_id=t.id) }}'"{% endif %}>
     {% if t.escudo %}
       <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="Escudo {{ t.nome }}">
     {% else %}
@@ -103,7 +103,7 @@
       </div>
       <div class="text-secondary small">{{ t.cidade or 'Sem município cadastrado' }}</div>
     </div>
-    {% if eh_master %}
+    {% if perm_times %}
     <div class="d-flex gap-2" onclick="event.stopPropagation()">
       <a href="{{ url_for('times_editar', time_id=t.id) }}" class="btn btn-sm btn-outline-brand">
         <i class="bi bi-pencil"></i>
@@ -118,7 +118,7 @@
     {% endif %}
   </div>
   {% endfor %}
-  {% if eh_master %}
+  {% if perm_times %}
     <p class="text-muted small text-center mb-0 pt-2 pb-3"><i class="bi bi-hand-index-thumb"></i> Toque duas vezes num time pra editar rápido</p>
   {% endif %}
 </div>

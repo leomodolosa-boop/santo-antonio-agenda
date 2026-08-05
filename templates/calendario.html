@@ -187,7 +187,7 @@
       <i class="bi bi-info-circle text-secondary me-1"></i>
       Próximo sábado sem jogo agendado: <strong>{{ proximo_sabado_livre_br }}</strong>
     </span>
-    {% if eh_master %}
+    {% if perm_jogos %}
       <button type="button" class="btn btn-brand btn-sm" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=proximo_sabado_livre) }}')">
         <i class="bi bi-plus-lg"></i> Agendar jogo
       </button>
@@ -329,7 +329,7 @@
                   <i class="bi bi-geo-alt-fill"></i> Ver localização
                 </button>
               {% endif %}
-              {% if eh_master %}
+              {% if perm_jogos %}
                 <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_editar', jogo_id=jogo.id) }}')">
                   <i class="bi bi-pencil"></i> Editar
                 </button>
@@ -366,7 +366,7 @@
                   </button>
                 {% endif %}
               {% endif %}
-              {% if eh_master %}
+              {% if perm_jogos %}
                 {% if jogo.status == 'pendente' %}
                   <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -390,7 +390,7 @@
             </div>
           {% else %}
             <p class="text-muted mb-3">Nenhum jogo agendado ainda.</p>
-            {% if eh_master %}
+            {% if perm_jogos %}
               <button type="button" class="btn btn-sm btn-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_novo', data=d.isoformat()) }}')">
                 <i class="bi bi-plus-lg"></i> Agendar jogo
               </button>

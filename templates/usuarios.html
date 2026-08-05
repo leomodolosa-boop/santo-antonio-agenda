@@ -16,9 +16,9 @@
   <div class="card-body p-4">
     <h5 class="card-title fw-semibold"><i class="bi bi-person-plus text-secondary"></i> Adicionar novo administrador</h5>
     <p class="text-muted small mb-3">
-      Toda conta criada aqui recebe acesso completo, igual ao seu (agendar, editar,
-      confirmar/cancelar jogos e gerenciar times). Quem não tiver login continua
-      só vendo o app.
+      Escolha o que essa conta pode alterar ou modificar no app. Quem não
+      tiver login continua só vendo o app; sem nenhuma caixa marcada, a
+      conta consegue entrar mas fica só de consulta, igual um visitante.
     </p>
     {% if erro %}
       <div class="alert alert-danger d-flex align-items-center gap-2">
@@ -42,8 +42,29 @@
         <button type="submit" class="btn btn-brand w-100"><i class="bi bi-plus-lg"></i></button>
       </div>
       <div class="col-12">
-        <div class="form-text mb-1">Senha: mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo (ex: @, #, !).</div>
-        <input type="email" class="form-control" name="email" placeholder="E-mail (opcional, só registro)">
+        <div class="form-text mb-2">Senha: mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo (ex: @, #, !).</div>
+        <input type="email" class="form-control mb-3" name="email" placeholder="E-mail (opcional, só registro)">
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold d-block mb-2">Permissões</label>
+        <div class="d-flex flex-wrap gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_jogos" id="perm_jogos_novo">
+            <label class="form-check-label" for="perm_jogos_novo">Jogos e resultados</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_times" id="perm_times_novo">
+            <label class="form-check-label" for="perm_times_novo">Times</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_jogadores" id="perm_jogadores_novo">
+            <label class="form-check-label" for="perm_jogadores_novo">Jogadores</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_usuarios" id="perm_usuarios_novo">
+            <label class="form-check-label" for="perm_usuarios_novo">Usuários</label>
+          </div>
+        </div>
       </div>
     </form>
   </div>
@@ -56,6 +77,7 @@
         <tr>
           <th>Nome</th>
           <th>Usuário</th>
+          <th>Permissões</th>
           <th class="text-end">Ações</th>
         </tr>
       </thead>
@@ -64,6 +86,17 @@
         <tr>
           <td class="fw-semibold">{{ u.nome }}</td>
           <td class="text-secondary">{{ u.usuario }}</td>
+          <td>
+            <div class="d-flex flex-wrap gap-1">
+              {% if u.perm_jogos %}<span class="badge rounded-pill badge-confirmado">Jogos</span>{% endif %}
+              {% if u.perm_times %}<span class="badge rounded-pill badge-confirmado">Times</span>{% endif %}
+              {% if u.perm_jogadores %}<span class="badge rounded-pill badge-confirmado">Jogadores</span>{% endif %}
+              {% if u.perm_usuarios %}<span class="badge rounded-pill badge-confirmado">Usuários</span>{% endif %}
+              {% if not (u.perm_jogos or u.perm_times or u.perm_jogadores or u.perm_usuarios) %}
+                <span class="badge rounded-pill badge-cancelado">Só consulta</span>
+              {% endif %}
+            </div>
+          </td>
           <td class="text-end">
             {% if u.id != usuario_logado.id %}
               <form method="post" action="{{ url_for('usuarios_excluir', usuario_id=u.id) }}"

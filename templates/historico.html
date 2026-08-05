@@ -74,7 +74,7 @@
           {% endif %}
         </td>
         <td class="text-end">
-          {% if eh_master %}
+          {% if perm_jogos %}
             <button type="button" class="btn btn-sm btn-outline-brand" onclick="agendaAbrirModalJogo('{{ url_for('jogo_editar', jogo_id=j.id) }}')">
               <i class="bi bi-pencil"></i> Editar
             </button>

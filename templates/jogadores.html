@@ -12,7 +12,7 @@
 
 {% block content %}
 
-{% if eh_master %}
+{% if perm_jogadores %}
 <div class="card mb-4">
   <div class="card-body p-4">
     <h5 class="card-title fw-semibold"><i class="bi bi-plus-circle text-secondary"></i> Adicionar novo jogador</h5>
@@ -127,7 +127,7 @@
           {% endif %}
         </td>
         <td class="text-end">
-          {% if eh_master %}
+          {% if perm_jogadores %}
           <div class="d-flex gap-2 justify-content-end">
             <a href="{{ url_for('jogadores_editar', jogador_id=j.id) }}" class="btn btn-sm btn-outline-brand">
               <i class="bi bi-pencil"></i> Editar
@@ -148,9 +148,9 @@
 
 <div class="card d-md-none">
   {% for j in jogadores %}
-  <div class="time-linha-mobile jogador-linha-busca{% if eh_master %} time-linha-clicavel{% endif %}"
+  <div class="time-linha-mobile jogador-linha-busca{% if perm_jogadores %} time-linha-clicavel{% endif %}"
        data-nome="{{ (j.nome_completo ~ ' ' ~ (j.apelido or ''))|lower }}"
-       {% if eh_master %}ondblclick="window.location='{{ url_for('jogadores_editar', jogador_id=j.id) }}'"{% endif %}>
+       {% if perm_jogadores %}ondblclick="window.location='{{ url_for('jogadores_editar', jogador_id=j.id) }}'"{% endif %}>
     {% if j.foto %}
       <img class="escudo-circulo" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
     {% else %}
@@ -163,7 +163,7 @@
       </div>
       <div class="text-secondary small">{{ j.posicao or 'Sem posição cadastrada' }}{% if j.numero_camisa %} · nº {{ j.numero_camisa }}{% endif %}</div>
     </div>
-    {% if eh_master %}
+    {% if perm_jogadores %}
     <div class="d-flex gap-2" onclick="event.stopPropagation()">
       <a href="{{ url_for('jogadores_editar', jogador_id=j.id) }}" class="btn btn-sm btn-outline-brand">
         <i class="bi bi-pencil"></i>
@@ -176,7 +176,7 @@
     {% endif %}
   </div>
   {% endfor %}
-  {% if eh_master %}
+  {% if perm_jogadores %}
     <p class="text-muted small text-center mb-0 pt-2 pb-3"><i class="bi bi-hand-index-thumb"></i> Toque duas vezes num jogador pra editar rápido</p>
   {% endif %}
 </div>

@@ -351,8 +351,16 @@ def init_db():
                 email TEXT,
                 usuario TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
-                perfil TEXT NOT NULL DEFAULT 'visualizacao'
+                perfil TEXT NOT NULL DEFAULT 'visualizacao',
+                perm_jogos INTEGER NOT NULL DEFAULT 1,
+                perm_times INTEGER NOT NULL DEFAULT 1,
+                perm_jogadores INTEGER NOT NULL DEFAULT 1,
+                perm_usuarios INTEGER NOT NULL DEFAULT 1
             );
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_jogos INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_times INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_jogadores INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_usuarios INTEGER NOT NULL DEFAULT 1;
             CREATE TABLE IF NOT EXISTS jogadores (
                 id SERIAL PRIMARY KEY,
                 nome_completo TEXT NOT NULL,
@@ -411,7 +419,11 @@ def init_db():
                 email TEXT,
                 usuario TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
-                perfil TEXT NOT NULL DEFAULT 'visualizacao'
+                perfil TEXT NOT NULL DEFAULT 'visualizacao',
+                perm_jogos INTEGER NOT NULL DEFAULT 1,
+                perm_times INTEGER NOT NULL DEFAULT 1,
+                perm_jogadores INTEGER NOT NULL DEFAULT 1,
+                perm_usuarios INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS jogadores (
@@ -466,6 +478,12 @@ def init_db():
         colunas_jogadores = {row["name"] for row in conn.execute("PRAGMA table_info(jogadores)")}
         if "conta_estatisticas" not in colunas_jogadores:
             conn.execute("ALTER TABLE jogadores ADD COLUMN conta_estatisticas INTEGER NOT NULL DEFAULT 1")
+        conn.commit()
+
+        colunas_usuarios = {row["name"] for row in conn.execute("PRAGMA table_info(usuarios)")}
+        for coluna in ("perm_jogos", "perm_times", "perm_jogadores", "perm_usuarios"):
+            if coluna not in colunas_usuarios:
+                conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} INTEGER NOT NULL DEFAULT 1")
         conn.commit()
 
     existentes = {row["nome"] for row in conn.execute("SELECT nome FROM times").fetchall()}
