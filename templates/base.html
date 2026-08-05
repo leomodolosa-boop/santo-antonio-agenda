@@ -1137,6 +1137,51 @@
       }
     }
 
+    function agendaFormatarHora(hora) {
+      if (!hora) return '';
+      const partes = hora.split(':');
+      const h = parseInt(partes[0], 10);
+      const m = parseInt(partes[1] || '0', 10);
+      return h + 'h' + (m ? String(m).padStart(2, '0') : '');
+    }
+
+    async function compartilharListaPresenca(btn) {
+      const d = btn.dataset;
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando...';
+      try {
+        const linhas = [];
+        for (let i = 1; i <= 18; i++) linhas.push(i + '-');
+        let texto = '📋 Lista de Presença\n' +
+          '⚽ Jogo: ' + d.timeFixo + ' x ' + d.adversario + '\n' +
+          '📅 Data: Sábado, ' + d.data + '\n' +
+          (d.hora ? '⏰ Horário: ' + agendaFormatarHora(d.hora) + '\n' : '') +
+          '📍 Local: ' + d.local;
+        if (d.localMapaUrlFixo) {
+          texto += '\n' + d.localMapaUrlFixo;
+        }
+        texto += '\n\n' + linhas.join('\n') + '\n\nNão vai.';
+
+        if (navigator.share) {
+          await navigator.share({ title: 'Lista de Presença', text: texto });
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(texto);
+          alert('Lista copiada! Agora e so colar no grupo do WhatsApp.');
+        } else {
+          window.prompt('Copie a lista abaixo:', texto);
+        }
+      } catch (erro) {
+        if (erro.name !== 'AbortError') {
+          console.error(erro);
+          alert('Nao foi possivel gerar a lista.');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+    }
+
     function agendaDesenharFotoCircular(ctx, img, cx, cy, raio) {
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.3)';

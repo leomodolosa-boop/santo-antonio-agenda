@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.3.5"
+APP_VERSION = "3.4.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -111,12 +111,15 @@ def hex_para_rgb(cor_hex):
 def injetar_contexto_global():
     conn = get_db()
     usuario = usuario_logado()
-    row_escudo = conn.execute("SELECT escudo, escudo_cor FROM times WHERE is_fixo = 1").fetchone()
+    row_escudo = conn.execute(
+        "SELECT escudo, escudo_cor, campo_mapa_url FROM times WHERE is_fixo = 1"
+    ).fetchone()
     return {
         "usuario_logado": usuario,
         "eh_master": bool(usuario and usuario["perfil"] == "master"),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
+        "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
         "app_version": APP_VERSION,
     }
 
