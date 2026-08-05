@@ -46,7 +46,7 @@
       --sao-verde: #0f4a2c;
       --sao-verde-escuro: #0a3620;
       --sao-dourado: #c9a227;
-      --bg-pagina: #eef1f3;
+      --bg-pagina: #e3e7ea;
       --texto-suave: #6c757d;
     }
 
@@ -166,9 +166,12 @@
 
     /* ---------- Cards ---------- */
     .card {
-      border: none;
+      border: 1px solid rgba(20, 20, 40, .12);
       border-radius: 14px;
-      box-shadow: 0 4px 18px rgba(20, 20, 40, .08);
+      box-shadow: 0 4px 18px rgba(20, 20, 40, .1);
+    }
+    [data-bs-theme="dark"] .card {
+      border-color: rgba(255, 255, 255, .1);
     }
     .card-jogo { border-top: 4px solid var(--sao-verde); }
     .card-pendente { border-top: 4px solid var(--sao-dourado); }
@@ -352,7 +355,7 @@
       background: rgba(255, 255, 255, .05);
       backdrop-filter: blur(22px) saturate(1.35);
       -webkit-backdrop-filter: blur(22px) saturate(1.35);
-      border: 1px solid rgba(20, 20, 40, .08);
+      border: 1px solid rgba(20, 20, 40, .18);
       box-shadow:
         0 14px 40px rgba(20, 20, 40, .16),
         0 2px 8px rgba(20, 20, 40, .08),
