@@ -20,7 +20,11 @@
     <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="col-md-4">
-        <input type="text" class="form-control" name="nome_completo" placeholder="Nome completo" required>
+        <div class="position-relative" data-picker-wrapper>
+          <input type="text" class="form-control" name="nome_completo" placeholder="Nome completo" required
+                 autocomplete="off" oninput="agendaVerificarJogadorDuplicado(this)">
+          <div class="time-picker-dropdown" id="lista-jogadores-duplicados"></div>
+        </div>
       </div>
       <div class="col-md-3">
         <select class="form-select" name="posicao">
@@ -39,6 +43,43 @@
     </form>
   </div>
 </div>
+
+<script>
+  const AGENDA_JOGADORES_CADASTRADOS = [
+    {% for j in jogadores %}
+    { id: {{ j.id }}, nome: {{ j.nome_completo | tojson }}, apelido: {{ (j.apelido or '') | tojson }} },
+    {% endfor %}
+  ];
+
+  function agendaVerificarJogadorDuplicado(input) {
+    const lista = document.getElementById('lista-jogadores-duplicados');
+    const termo = input.value.toLowerCase().trim();
+    lista.innerHTML = '';
+    if (termo.length < 2) {
+      lista.classList.remove('aberta');
+      return;
+    }
+    const resultados = AGENDA_JOGADORES_CADASTRADOS.filter(function (j) {
+      return j.nome.toLowerCase().indexOf(termo) !== -1 ||
+        (j.apelido && j.apelido.toLowerCase().indexOf(termo) !== -1);
+    });
+    if (!resultados.length) {
+      lista.classList.remove('aberta');
+      return;
+    }
+    resultados.forEach(function (j) {
+      const item = document.createElement('div');
+      item.className = 'time-picker-item';
+      item.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning"></i> <span>Já cadastrado: ' +
+        j.nome + (j.apelido ? ' (' + j.apelido + ')' : '') + '</span>';
+      item.onclick = function () {
+        window.location = '/jogadores/' + j.id + '/editar';
+      };
+      lista.appendChild(item);
+    });
+    lista.classList.add('aberta');
+  }
+</script>
 {% endif %}
 
 <div class="mb-3">
