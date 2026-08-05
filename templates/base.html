@@ -458,11 +458,13 @@
       position: absolute;
       inset: 0;
       z-index: -1;
-      /* Lado do Santo Antônio: sempre o tricolor da bandeira (grená → branco → verde), translúcido. */
+      /* Lado do Santo Antônio: sempre o tricolor da bandeira (grená → branco → verde), translúcido.
+         As cores vão até a borda (em vez de sumir em "transparent") pra não deixar uma faixa
+         branca/cinza sem graça nas pontas do card no modo claro. */
       background:
         radial-gradient(circle at var(--pos-santo) 50%,
-          rgba(107, 21, 34, .95) 0%, rgba(246, 246, 244, .9) 34%, rgba(15, 74, 44, .95) 62%, transparent 82%),
-        radial-gradient(circle at var(--pos-adv) 50%, rgba(var(--cor-adv-rgb), .95) 0%, transparent 65%);
+          rgba(107, 21, 34, .95) 0%, rgba(246, 246, 244, .9) 34%, rgba(15, 74, 44, .95) 62%, rgba(15, 74, 44, .4) 100%),
+        radial-gradient(circle at var(--pos-adv) 50%, rgba(var(--cor-adv-rgb), .95) 0%, rgba(var(--cor-adv-rgb), .4) 100%);
       filter: blur(20px);
     }
     .confronto::after {
