@@ -1169,6 +1169,44 @@
       }
     }
 
+    function agendaFiltrarArtilheiro(input) {
+      const wrapper = input.closest('.artilheiro-busca-wrapper');
+      if (!wrapper) return;
+      const lista = wrapper.querySelector('.artilheiro-jogador-lista');
+      const hiddenInput = wrapper.querySelector('.artilheiro-jogador-id');
+      const termo = input.value.toLowerCase().trim();
+      const jogadores = window.AGENDA_JOGADORES_ATIVOS || [];
+      const resultados = termo
+        ? jogadores.filter((j) => j.nome.toLowerCase().indexOf(termo) !== -1)
+        : jogadores;
+      lista.innerHTML = '';
+      if (!resultados.length) {
+        lista.classList.remove('aberta');
+        return;
+      }
+      resultados.forEach((j) => {
+        const item = document.createElement('div');
+        item.className = 'time-picker-item';
+        if (j.contra) item.style.cssText = 'color:#c0392b;font-weight:700';
+        item.textContent = j.nome;
+        item.onclick = function () {
+          input.value = j.nome;
+          hiddenInput.value = j.id;
+          lista.classList.remove('aberta');
+        };
+        lista.appendChild(item);
+      });
+      lista.classList.add('aberta');
+    }
+
+    function agendaFiltrarJogadores(termo) {
+      termo = termo.toLowerCase().trim();
+      document.querySelectorAll('.jogador-linha-busca').forEach(function (linha) {
+        const visivel = !termo || linha.dataset.nome.indexOf(termo) !== -1;
+        linha.style.display = visivel ? '' : 'none';
+      });
+    }
+
     function agendaFormatarHora(hora) {
       if (!hora) return '';
       const partes = hora.split(':');

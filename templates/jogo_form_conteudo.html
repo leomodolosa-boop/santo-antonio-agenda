@@ -127,15 +127,21 @@
         <label class="form-label fw-semibold d-block">Artilheiros do {{ time_fixo }}</label>
         <div id="artilheiros-lista">
           {% for g in artilheiros %}
+            {% set jogador_atual = (jogadores_ativos | selectattr('id', 'equalto', g.jogador_id) | list) %}
+            {% set jogador_atual = jogador_atual[0] if jogador_atual else None %}
             <div class="row g-2 mb-2 artilheiro-linha">
               <div class="col-7">
-                <select class="form-select" name="gol_jogador">
-                  <option value="">Selecione o jogador</option>
-                  {% for j in jogadores_ativos %}
-                    <option value="{{ j.id }}" {% if j.id == g.jogador_id %}selected{% endif %}
-                      {% if j.nome_completo == 'Contra' %}style="color:#c0392b;font-weight:700"{% endif %}>{{ j.apelido or j.nome_completo }}</option>
-                  {% endfor %}
-                </select>
+                <div class="position-relative artilheiro-busca-wrapper" data-picker-wrapper>
+                  <input type="hidden" name="gol_jogador" class="artilheiro-jogador-id" value="{{ g.jogador_id }}">
+                  <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control artilheiro-jogador-busca" autocomplete="off"
+                           placeholder="Buscar jogador..."
+                           value="{{ (jogador_atual.apelido or jogador_atual.nome_completo) if jogador_atual else '' }}"
+                           oninput="agendaFiltrarArtilheiro(this)" onfocus="agendaFiltrarArtilheiro(this)">
+                  </div>
+                  <div class="time-picker-dropdown artilheiro-jogador-lista"></div>
+                </div>
               </div>
               <div class="col-3">
                 <input type="number" min="1" class="form-control" name="gol_qtd" value="{{ g.quantidade }}" placeholder="Gols">
@@ -157,12 +163,16 @@
       <template id="artilheiro-linha-template">
         <div class="row g-2 mb-2 artilheiro-linha">
           <div class="col-7">
-            <select class="form-select" name="gol_jogador">
-              <option value="">Selecione o jogador</option>
-              {% for j in jogadores_ativos %}
-                <option value="{{ j.id }}" {% if j.nome_completo == 'Contra' %}style="color:#c0392b;font-weight:700"{% endif %}>{{ j.apelido or j.nome_completo }}</option>
-              {% endfor %}
-            </select>
+            <div class="position-relative artilheiro-busca-wrapper" data-picker-wrapper>
+              <input type="hidden" name="gol_jogador" class="artilheiro-jogador-id" value="">
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control artilheiro-jogador-busca" autocomplete="off"
+                       placeholder="Buscar jogador..."
+                       oninput="agendaFiltrarArtilheiro(this)" onfocus="agendaFiltrarArtilheiro(this)">
+              </div>
+              <div class="time-picker-dropdown artilheiro-jogador-lista"></div>
+            </div>
           </div>
           <div class="col-3">
             <input type="number" min="1" class="form-control" name="gol_qtd" value="1" placeholder="Gols">
@@ -172,6 +182,14 @@
           </div>
         </div>
       </template>
+
+      <script>
+        window.AGENDA_JOGADORES_ATIVOS = [
+          {% for j in jogadores_ativos %}
+          { id: {{ j.id }}, nome: {{ (j.apelido or j.nome_completo) | tojson }}, contra: {{ 'true' if j.nome_completo == 'Contra' else 'false' }} },
+          {% endfor %}
+        ];
+      </script>
       {% endif %}
 
       <div class="mb-4">
