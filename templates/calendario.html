@@ -65,6 +65,7 @@
               {% set local_mapa_url_efetivo = proximo_jogo.adversario_mapa_url %}
             {% endif %}
           {% endif %}
+          {% set campo_efetivo = nome_campo_fixo if mandante_casa else proximo_jogo.adversario_nome_campo %}
           <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
             <span class="text-uppercase small fw-semibold text-secondary">Próximo jogo</span>
             {% if dias_para_proximo_jogo == 0 %}
@@ -106,6 +107,14 @@
             {{ proximo_jogo.data[8:10] }}/{{ proximo_jogo.data[5:7] }}/{{ proximo_jogo.data[0:4] }}
             {% if proximo_jogo.hora %} &middot; <i class="bi bi-clock"></i> {{ proximo_jogo.hora }}{% endif %}
             {% if local_efetivo %}<br><i class="bi bi-geo-alt"></i> {{ local_efetivo }}{% endif %}
+            {% if campo_efetivo %}
+              <br><i class="bi bi-flag"></i>
+              {% if local_mapa_url_efetivo %}
+                <a href="{{ local_mapa_url_efetivo }}" target="_blank" rel="noopener">{{ campo_efetivo }}</a>
+              {% else %}
+                {{ campo_efetivo }}
+              {% endif %}
+            {% endif %}
           </div>
           {% if local_efetivo %}
             <div class="text-center mt-3">
@@ -267,6 +276,7 @@
                 {% set local_mapa_url_efetivo = jogo.adversario_mapa_url %}
               {% endif %}
             {% endif %}
+            {% set campo_efetivo = nome_campo_fixo if mandante_casa else jogo.adversario_nome_campo %}
             {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
             {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
             {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
@@ -325,12 +335,22 @@
                 <span class="jogo-meta-item"><i class="bi bi-clock-fill"></i> {{ jogo.hora }}</span>
               {% endif %}
               {% if local_efetivo %}
-                <span class="jogo-meta-item">
+                <span class="jogo-meta-item w-100">
                   <i class="bi bi-geo-alt-fill"></i>
                   {% if local_mapa_url_efetivo %}
                     <a href="{{ local_mapa_url_efetivo }}" target="_blank" rel="noopener">{{ local_efetivo }} <i class="bi bi-box-arrow-up-right small"></i></a>
                   {% else %}
                     {{ local_efetivo }}
+                  {% endif %}
+                </span>
+              {% endif %}
+              {% if campo_efetivo %}
+                <span class="jogo-meta-item w-100">
+                  <i class="bi bi-flag-fill"></i>
+                  {% if local_mapa_url_efetivo %}
+                    <a href="{{ local_mapa_url_efetivo }}" target="_blank" rel="noopener">{{ campo_efetivo }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                  {% else %}
+                    {{ campo_efetivo }}
                   {% endif %}
                 </span>
               {% endif %}

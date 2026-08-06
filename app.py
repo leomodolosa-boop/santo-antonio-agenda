@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.9.0"
+APP_VERSION = "3.9.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -120,7 +120,7 @@ def injetar_contexto_global():
     conn = get_db()
     usuario = usuario_logado()
     row_escudo = conn.execute(
-        "SELECT escudo, escudo_cor, campo_mapa_url, endereco FROM times WHERE is_fixo = 1"
+        "SELECT escudo, escudo_cor, campo_mapa_url, endereco, nome_campo FROM times WHERE is_fixo = 1"
     ).fetchone()
     return {
         "usuario_logado": usuario,
@@ -133,6 +133,7 @@ def injetar_contexto_global():
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
         "endereco_fixo": row_escudo["endereco"] if row_escudo else None,
+        "nome_campo_fixo": row_escudo["nome_campo"] if row_escudo else None,
         "app_version": APP_VERSION,
     }
 
@@ -356,7 +357,8 @@ def buscar_proximo_jogo(apenas_confirmados=False):
     jogo = conn.execute(
         f"""
         SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor,
-               times.endereco AS adversario_endereco, times.campo_mapa_url AS adversario_mapa_url
+               times.endereco AS adversario_endereco, times.campo_mapa_url AS adversario_mapa_url,
+               times.nome_campo AS adversario_nome_campo
         FROM jogos JOIN times ON times.id = jogos.adversario_id
         WHERE jogos.data >= ? AND {filtro_status}
         ORDER BY jogos.data ASC
@@ -446,7 +448,8 @@ def calendario(ano, mes):
         linhas = conn.execute(
             f"""
             SELECT jogos.*, times.nome AS adversario_nome, times.escudo AS adversario_escudo, times.escudo_cor AS adversario_cor,
-                   times.endereco AS adversario_endereco, times.campo_mapa_url AS adversario_mapa_url
+                   times.endereco AS adversario_endereco, times.campo_mapa_url AS adversario_mapa_url,
+                   times.nome_campo AS adversario_nome_campo
             FROM jogos JOIN times ON times.id = jogos.adversario_id
             WHERE jogos.data IN ({marcadores})
             """,
