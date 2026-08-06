@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.10.3"
+APP_VERSION = "3.11.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,7 +87,7 @@ def usuario_logado():
         conn = get_db()
         g.usuario_atual = conn.execute(
             """
-            SELECT id, nome, usuario, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios
+            SELECT id, nome, usuario, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos
             FROM usuarios WHERE id = ?
             """,
             (session["usuario_id"],),
@@ -133,6 +133,7 @@ def injetar_contexto_global():
         "perm_times": bool(usuario and usuario["perm_times"]),
         "perm_jogadores": bool(usuario and usuario["perm_jogadores"]),
         "perm_usuarios": bool(usuario and usuario["perm_usuarios"]),
+        "perm_confirmar_jogos": bool(usuario and usuario["perm_confirmar_jogos"]),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
@@ -163,8 +164,8 @@ def configurar_master():
         else:
             conn.execute(
                 """
-                INSERT INTO usuarios (nome, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios)
-                VALUES (?, ?, ?, 'master', 1, 1, 1, 1)
+                INSERT INTO usuarios (nome, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos)
+                VALUES (?, ?, ?, 'master', 1, 1, 1, 1, 1)
                 """,
                 (nome, usuario_login, generate_password_hash(senha)),
             )
@@ -224,6 +225,7 @@ def usuarios():
         perm_times = 1 if request.form.get("perm_times") else 0
         perm_jogadores = 1 if request.form.get("perm_jogadores") else 0
         perm_usuarios = 1 if request.form.get("perm_usuarios") else 0
+        perm_confirmar_jogos = 1 if request.form.get("perm_confirmar_jogos") else 0
 
         if not nome or not usuario_login or not senha:
             erro = "Preencha nome, usuário e senha."
@@ -234,11 +236,11 @@ def usuarios():
                 conn.execute(
                     """
                     INSERT INTO usuarios
-                        (nome, email, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios)
-                    VALUES (?, ?, ?, ?, 'master', ?, ?, ?, ?)
+                        (nome, email, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos)
+                    VALUES (?, ?, ?, ?, 'master', ?, ?, ?, ?, ?)
                     """,
                     (nome, email, usuario_login, generate_password_hash(senha),
-                     perm_jogos, perm_times, perm_jogadores, perm_usuarios),
+                     perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos),
                 )
                 conn.commit()
             except (sqlite3.IntegrityError, ErroIntegridade):
@@ -757,7 +759,7 @@ def _mudar_status_jogo(jogo_id, novo_status):
 
 
 @app.route("/jogo/<int:jogo_id>/confirmar", methods=["POST"])
-@permissao_obrigatoria("perm_jogos")
+@permissao_obrigatoria("perm_confirmar_jogos")
 def jogo_confirmar(jogo_id):
     return _mudar_status_jogo(jogo_id, "confirmado")
 

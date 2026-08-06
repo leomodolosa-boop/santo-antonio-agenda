@@ -53,6 +53,10 @@
             <label class="form-check-label" for="perm_jogos_novo">Jogos e resultados</label>
           </div>
           <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_confirmar_jogos" id="perm_confirmar_jogos_novo">
+            <label class="form-check-label" for="perm_confirmar_jogos_novo">Confirmar jogos</label>
+          </div>
+          <div class="form-check">
             <input class="form-check-input" type="checkbox" name="perm_times" id="perm_times_novo">
             <label class="form-check-label" for="perm_times_novo">Times</label>
           </div>
@@ -89,10 +93,11 @@
           <td>
             <div class="d-flex flex-wrap gap-1">
               {% if u.perm_jogos %}<span class="badge rounded-pill badge-confirmado">Jogos</span>{% endif %}
+              {% if u.perm_confirmar_jogos %}<span class="badge rounded-pill badge-confirmado">Confirmar jogos</span>{% endif %}
               {% if u.perm_times %}<span class="badge rounded-pill badge-confirmado">Times</span>{% endif %}
               {% if u.perm_jogadores %}<span class="badge rounded-pill badge-confirmado">Jogadores</span>{% endif %}
               {% if u.perm_usuarios %}<span class="badge rounded-pill badge-confirmado">Usuários</span>{% endif %}
-              {% if not (u.perm_jogos or u.perm_times or u.perm_jogadores or u.perm_usuarios) %}
+              {% if not (u.perm_jogos or u.perm_confirmar_jogos or u.perm_times or u.perm_jogadores or u.perm_usuarios) %}
                 <span class="badge rounded-pill badge-cancelado">Só consulta</span>
               {% endif %}
             </div>

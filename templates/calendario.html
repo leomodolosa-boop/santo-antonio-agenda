@@ -392,13 +392,13 @@
                   </button>
                 {% endif %}
               {% endif %}
+              {% if perm_confirmar_jogos and jogo.status == 'pendente' %}
+                <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-brand"><i class="bi bi-check-lg"></i> Confirmar jogo</button>
+                </form>
+              {% endif %}
               {% if perm_jogos %}
-                {% if jogo.status == 'pendente' %}
-                  <form method="post" action="{{ url_for('jogo_confirmar', jogo_id=jogo.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-brand"><i class="bi bi-check-lg"></i> Confirmar jogo</button>
-                  </form>
-                {% endif %}
                 {% if jogo.status in ('pendente', 'confirmado') %}
                   <form method="post" action="{{ url_for('jogo_cancelar', jogo_id=jogo.id) }}"
                     onsubmit="return confirm('O adversário desmarcou? Isso vai marcar o jogo como cancelado.')">

@@ -355,12 +355,14 @@ def init_db():
                 perm_jogos INTEGER NOT NULL DEFAULT 1,
                 perm_times INTEGER NOT NULL DEFAULT 1,
                 perm_jogadores INTEGER NOT NULL DEFAULT 1,
-                perm_usuarios INTEGER NOT NULL DEFAULT 1
+                perm_usuarios INTEGER NOT NULL DEFAULT 1,
+                perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1
             );
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_jogos INTEGER NOT NULL DEFAULT 1;
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_times INTEGER NOT NULL DEFAULT 1;
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_jogadores INTEGER NOT NULL DEFAULT 1;
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_usuarios INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1;
             CREATE TABLE IF NOT EXISTS jogadores (
                 id SERIAL PRIMARY KEY,
                 nome_completo TEXT NOT NULL,
@@ -423,7 +425,8 @@ def init_db():
                 perm_jogos INTEGER NOT NULL DEFAULT 1,
                 perm_times INTEGER NOT NULL DEFAULT 1,
                 perm_jogadores INTEGER NOT NULL DEFAULT 1,
-                perm_usuarios INTEGER NOT NULL DEFAULT 1
+                perm_usuarios INTEGER NOT NULL DEFAULT 1,
+                perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS jogadores (
@@ -481,7 +484,7 @@ def init_db():
         conn.commit()
 
         colunas_usuarios = {row["name"] for row in conn.execute("PRAGMA table_info(usuarios)")}
-        for coluna in ("perm_jogos", "perm_times", "perm_jogadores", "perm_usuarios"):
+        for coluna in ("perm_jogos", "perm_times", "perm_jogadores", "perm_usuarios", "perm_confirmar_jogos"):
             if coluna not in colunas_usuarios:
                 conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} INTEGER NOT NULL DEFAULT 1")
         conn.commit()
