@@ -456,8 +456,6 @@
       overflow: hidden;
       isolation: isolate;
       background: rgba(255, 255, 255, .05);
-      backdrop-filter: blur(22px) saturate(1.35);
-      -webkit-backdrop-filter: blur(22px) saturate(1.35);
       border: 1px solid rgba(20, 20, 40, .18);
       box-shadow:
         0 14px 40px rgba(20, 20, 40, .16),
@@ -484,7 +482,7 @@
         radial-gradient(circle at var(--pos-santo) 50%,
           rgba(107, 21, 34, .95) 0%, rgba(246, 246, 244, .9) 34%, rgba(15, 74, 44, .95) 62%, rgba(15, 74, 44, .4) 100%),
         radial-gradient(circle at var(--pos-adv) 50%, rgba(var(--cor-adv-rgb), .95) 0%, rgba(var(--cor-adv-rgb), .4) 100%);
-      filter: blur(20px);
+      filter: blur(16px);
     }
     .confronto::after {
       content: "";

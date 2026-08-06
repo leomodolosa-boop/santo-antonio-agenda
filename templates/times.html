@@ -93,7 +93,7 @@
       <tr>
         <td style="width:60px">
           {% if t.escudo %}
-            <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="Escudo {{ t.nome }}">
+            <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="Escudo {{ t.nome }}" loading="lazy">
           {% else %}
             <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
           {% endif %}

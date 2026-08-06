@@ -51,7 +51,7 @@
           <div class="artilheiro-posicao">{{ posicao }}</div>
         {% endif %}
         {% if j.foto %}
-          <img class="escudo-circulo artilheiro-foto" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
+          <img class="escudo-circulo artilheiro-foto" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}" loading="lazy">
         {% else %}
           <span class="escudo-placeholder-circulo artilheiro-foto"><i class="bi bi-person"></i></span>
         {% endif %}

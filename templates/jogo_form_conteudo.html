@@ -56,7 +56,7 @@
               <div class="time-picker-item" data-nome="{{ t.nome|lower }}"
                    onclick='agendaSelecionarTime({{ t.id }}, {{ t.nome|tojson }}, {{ (url_for("static", filename="escudos/" ~ t.escudo) if t.escudo else "")|tojson }})'>
                 {% if t.escudo %}
-                  <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="">
+                  <img src="{{ url_for('static', filename='escudos/' ~ t.escudo) }}" alt="" loading="lazy">
                 {% else %}
                   <span class="time-picker-placeholder"><i class="bi bi-shield"></i></span>
                 {% endif %}

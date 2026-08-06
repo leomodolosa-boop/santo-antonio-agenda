@@ -291,7 +291,7 @@
               <div class="confronto-time">
                 <div class="confronto-escudo-wrap">
                   {% if time_a_escudo %}
-                    <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}">
+                    <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_a_escudo) }}" alt="{{ time_a_nome }}" loading="lazy">
                   {% else %}
                     <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
                   {% endif %}
@@ -306,7 +306,7 @@
               <div class="confronto-time">
                 <div class="confronto-escudo-wrap">
                 {% if time_b_escudo %}
-                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}">
+                  <img class="confronto-escudo" src="{{ url_for('static', filename='escudos/' ~ time_b_escudo) }}" alt="{{ time_b_nome }}" loading="lazy">
                 {% else %}
                   <span class="escudo-placeholder-circulo confronto-escudo"><i class="bi bi-shield"></i></span>
                 {% endif %}

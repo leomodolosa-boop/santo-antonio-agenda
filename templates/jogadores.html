@@ -108,7 +108,7 @@
       <tr class="jogador-linha-busca" data-nome="{{ (j.nome_completo ~ ' ' ~ (j.apelido or ''))|lower }}">
         <td style="width:60px">
           {% if j.foto %}
-            <img class="escudo-circulo" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}">
+            <img class="escudo-circulo" src="{{ url_for('static', filename='jogadores/' ~ j.foto) }}" alt="Foto de {{ j.nome_completo }}" loading="lazy">
           {% else %}
             <span class="escudo-placeholder-circulo"><i class="bi bi-person"></i></span>
           {% endif %}
