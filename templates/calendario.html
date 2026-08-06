@@ -54,6 +54,17 @@
           {% set time_b_nome = proximo_jogo.adversario_nome if mandante_casa else time_fixo %}
           {% set time_b_escudo = proximo_jogo.adversario_escudo if mandante_casa else escudo_fixo %}
           {% set time_b_cor = proximo_jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
+          {% set local_efetivo = proximo_jogo.local %}
+          {% set local_mapa_url_efetivo = proximo_jogo.local_mapa_url %}
+          {% if not local_efetivo %}
+            {% if mandante_casa %}
+              {% set local_efetivo = endereco_fixo %}
+              {% set local_mapa_url_efetivo = campo_mapa_url_fixo %}
+            {% else %}
+              {% set local_efetivo = proximo_jogo.adversario_endereco %}
+              {% set local_mapa_url_efetivo = proximo_jogo.adversario_mapa_url %}
+            {% endif %}
+          {% endif %}
           <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
             <span class="text-uppercase small fw-semibold text-secondary">Próximo jogo</span>
             {% if dias_para_proximo_jogo == 0 %}
@@ -94,12 +105,12 @@
             &middot; <i class="bi bi-calendar-event"></i>
             {{ proximo_jogo.data[8:10] }}/{{ proximo_jogo.data[5:7] }}/{{ proximo_jogo.data[0:4] }}
             {% if proximo_jogo.hora %} &middot; <i class="bi bi-clock"></i> {{ proximo_jogo.hora }}{% endif %}
-            {% if proximo_jogo.local %}<br><i class="bi bi-geo-alt"></i> {{ proximo_jogo.local }}{% endif %}
+            {% if local_efetivo %}<br><i class="bi bi-geo-alt"></i> {{ local_efetivo }}{% endif %}
           </div>
-          {% if proximo_jogo.local %}
+          {% if local_efetivo %}
             <div class="text-center mt-3">
               <button type="button" class="btn btn-sm btn-outline-brand"
-                onclick='agendaAbrirLocalizacao({{ proximo_jogo.local|tojson }}, {{ (proximo_jogo.local_mapa_url or "")|tojson }})'>
+                onclick='agendaAbrirLocalizacao({{ local_efetivo|tojson }}, {{ (local_mapa_url_efetivo or "")|tojson }})'>
                 <i class="bi bi-geo-alt-fill"></i> Ver localização
               </button>
             </div>
@@ -245,6 +256,17 @@
             {% set time_b_nome = jogo.adversario_nome if mandante_casa else time_fixo %}
             {% set time_b_escudo = jogo.adversario_escudo if mandante_casa else escudo_fixo %}
             {% set time_b_cor = jogo.adversario_cor if mandante_casa else escudo_fixo_cor %}
+            {% set local_efetivo = jogo.local %}
+            {% set local_mapa_url_efetivo = jogo.local_mapa_url %}
+            {% if not local_efetivo %}
+              {% if mandante_casa %}
+                {% set local_efetivo = endereco_fixo %}
+                {% set local_mapa_url_efetivo = campo_mapa_url_fixo %}
+              {% else %}
+                {% set local_efetivo = jogo.adversario_endereco %}
+                {% set local_mapa_url_efetivo = jogo.adversario_mapa_url %}
+              {% endif %}
+            {% endif %}
             {% set tem_resultado = jogo.placar_santo is not none and jogo.placar_adversario is not none %}
             {% set placar_a = jogo.placar_santo if mandante_casa else jogo.placar_adversario %}
             {% set placar_b = jogo.placar_adversario if mandante_casa else jogo.placar_santo %}
@@ -302,13 +324,13 @@
               {% if jogo.hora %}
                 <span class="jogo-meta-item"><i class="bi bi-clock-fill"></i> {{ jogo.hora }}</span>
               {% endif %}
-              {% if jogo.local %}
+              {% if local_efetivo %}
                 <span class="jogo-meta-item">
                   <i class="bi bi-geo-alt-fill"></i>
-                  {% if jogo.local_mapa_url %}
-                    <a href="{{ jogo.local_mapa_url }}" target="_blank" rel="noopener">{{ jogo.local }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                  {% if local_mapa_url_efetivo %}
+                    <a href="{{ local_mapa_url_efetivo }}" target="_blank" rel="noopener">{{ local_efetivo }} <i class="bi bi-box-arrow-up-right small"></i></a>
                   {% else %}
-                    {{ jogo.local }}
+                    {{ local_efetivo }}
                   {% endif %}
                 </span>
               {% endif %}
@@ -323,9 +345,9 @@
             {% endif %}
             {% if jogo.observacao %}<p class="text-muted small mb-2">{{ jogo.observacao }}</p>{% endif %}
             <div class="d-flex gap-2 mt-2 flex-wrap jogo-acoes">
-              {% if jogo.local %}
+              {% if local_efetivo %}
                 <button type="button" class="btn btn-sm btn-outline-brand"
-                  onclick='agendaAbrirLocalizacao({{ jogo.local|tojson }}, {{ (jogo.local_mapa_url or "")|tojson }})'>
+                  onclick='agendaAbrirLocalizacao({{ local_efetivo|tojson }}, {{ (local_mapa_url_efetivo or "")|tojson }})'>
                   <i class="bi bi-geo-alt-fill"></i> Ver localização
                 </button>
               {% endif %}
@@ -342,8 +364,8 @@
                   data-escudo-adversario="{{ url_for('static', filename='escudos/' ~ time_b_escudo) if time_b_escudo else '' }}"
                   data-data="{{ d.strftime('%d/%m/%Y') }}"
                   data-hora="{{ jogo.hora or '' }}"
-                  data-local="{{ jogo.local or '' }}"
-                  data-local-mapa-url="{{ jogo.local_mapa_url or '' }}"
+                  data-local="{{ local_efetivo or '' }}"
+                  data-local-mapa-url="{{ local_mapa_url_efetivo or '' }}"
                   {% if tem_resultado %}
                   data-placar-a="{{ placar_a }}"
                   data-placar-b="{{ placar_b }}"
@@ -359,8 +381,8 @@
                     data-adversario="{{ jogo.adversario_nome }}"
                     data-data="{{ d.strftime('%d/%m') }}"
                     data-hora="{{ jogo.hora or '' }}"
-                    data-local="{{ jogo.local or '' }}"
-                    {% if mandante_casa %}data-local-mapa-url-fixo="{{ campo_mapa_url_fixo or '' }}"{% endif %}
+                    data-local="{{ local_efetivo or '' }}"
+                    {% if mandante_casa %}data-local-mapa-url-fixo="{{ local_mapa_url_efetivo or '' }}"{% endif %}
                     onclick="compartilharListaPresenca(this)">
                     <i class="bi bi-clipboard-check"></i> Lista de presença
                   </button>
