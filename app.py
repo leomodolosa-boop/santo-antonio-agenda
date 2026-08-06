@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.10.2"
+APP_VERSION = "3.10.3"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -257,6 +257,50 @@ def usuarios_excluir(usuario_id):
     conn = get_db()
     conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
     conn.commit()
+    return redirect(url_for("usuarios"))
+
+
+def _reduzir_se_grande(caminho, max_lado=480):
+    """Reabre uma imagem já salva em disco e reduz se passar de max_lado em
+    largura ou altura. Retorna True se mexeu no arquivo, False se já estava
+    pequena o bastante (evita reprocessar à toa)."""
+    try:
+        imagem = Image.open(caminho)
+    except Exception:
+        return False
+    if imagem.width <= max_lado and imagem.height <= max_lado:
+        return False
+    imagem = ImageOps.exif_transpose(imagem).convert("RGBA")
+    imagem.thumbnail((max_lado, max_lado), Image.LANCZOS)
+    imagem.save(caminho, "PNG")
+    return True
+
+
+@app.route("/admin/otimizar-imagens", methods=["POST"])
+@permissao_obrigatoria("perm_usuarios")
+def admin_otimizar_imagens():
+    conn = get_db()
+    total_times = 0
+    for row in conn.execute("SELECT id, escudo FROM times WHERE escudo IS NOT NULL").fetchall():
+        caminho = ESCUDOS_DIR / row["escudo"]
+        if caminho.exists() and _reduzir_se_grande(caminho):
+            salvar_escudo_blob(conn, row["id"], caminho)
+            salvar_cor_escudo(conn, row["id"], caminho)
+            total_times += 1
+    conn.commit()
+
+    total_jogadores = 0
+    for row in conn.execute("SELECT id, foto FROM jogadores WHERE foto IS NOT NULL").fetchall():
+        caminho = JOGADORES_DIR / row["foto"]
+        if caminho.exists() and _reduzir_se_grande(caminho):
+            salvar_foto_jogador_blob(conn, row["id"], caminho)
+            total_jogadores += 1
+    conn.commit()
+
+    if total_times or total_jogadores:
+        flash(f"Otimização concluída: {total_times} escudo(s) e {total_jogadores} foto(s) redimensionados.")
+    else:
+        flash("Nenhuma imagem precisava ser reduzida — já estava tudo otimizado.")
     return redirect(url_for("usuarios"))
 
 

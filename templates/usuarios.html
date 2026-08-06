@@ -115,4 +115,21 @@
   </div>
 </div>
 
+<div class="card mt-4">
+  <div class="card-body p-4">
+    <h5 class="card-title fw-semibold"><i class="bi bi-image text-secondary"></i> Manutenção de imagens</h5>
+    <p class="text-muted small mb-3">
+      Reduz escudos e fotos de jogador já cadastrados que estejam maiores do
+      que o necessário (acima de 480×480), pra economizar banda do Render.
+      Uploads novos já são reduzidos automaticamente — isso aqui é só pra
+      arrumar o que já estava cadastrado antes.
+    </p>
+    <form method="post" action="{{ url_for('admin_otimizar_imagens') }}"
+      onsubmit="return confirm('Isso vai reduzir escudos e fotos grandes já cadastrados. Pode levar alguns segundos. Continuar?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-brand"><i class="bi bi-arrow-down-circle"></i> Otimizar imagens já cadastradas</button>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
