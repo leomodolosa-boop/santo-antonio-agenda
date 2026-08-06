@@ -42,13 +42,17 @@ def validar_senha_forte(senha):
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "chave-local-de-desenvolvimento-trocar-em-producao")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+# Escudos/fotos raramente mudam depois de cadastrados — deixa o navegador
+# reaproveitar do cache local em vez de baixar de novo a cada visita, o
+# que economiza banda (limite de 5GB grátis no Render).
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = timedelta(days=7)
 csrf = CSRFProtect(app)
 
 # Código secreto exigido para criar a conta master pela primeira vez.
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.10.1"
+APP_VERSION = "3.10.2"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -264,10 +268,16 @@ def _abrir_imagem_upload(arquivo):
         flash("Formato de imagem não suportado. Envie um arquivo PNG, JPG ou WEBP.")
         return None
     try:
-        return ImageOps.exif_transpose(Image.open(arquivo.stream)).convert("RGBA")
+        imagem = ImageOps.exif_transpose(Image.open(arquivo.stream)).convert("RGBA")
     except Exception:
         flash("Não foi possível abrir essa imagem. Tente outro arquivo.")
         return None
+    # Escudos e fotos só aparecem pequenos na tela (a maior versão é ~120px),
+    # mas fotos de celular vêm com vários MB — isso é servido pra cada
+    # visitante toda vez que a página carrega e conta no limite de banda do
+    # Render, então reduz aqui antes de salvar em vez de guardar o original.
+    imagem.thumbnail((480, 480), Image.LANCZOS)
+    return imagem
 
 
 def salvar_escudo(arquivo, time_id, conn):
