@@ -39,7 +39,8 @@
     </div>
     {% for j in ranking %}
       {% set posicao = loop.index %}
-      <div class="artilheiro-linha {{ 'artilheiro-podio artilheiro-podio-' ~ posicao if posicao <= 3 else '' }}">
+      <div class="artilheiro-linha artilheiro-clicavel {{ 'artilheiro-podio artilheiro-podio-' ~ posicao if posicao <= 3 else '' }}"
+           onclick="agendaAbrirModalJogador('{{ url_for('artilharia_jogador', jogador_id=j.id) }}')">
         {% if posicao == 1 %}
           <div class="artilheiro-medalha ouro">🥇</div>
         {% elif posicao == 2 %}

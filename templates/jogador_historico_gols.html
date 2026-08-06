@@ -1,0 +1,53 @@
+<div class="p-4">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    {% if jogador.foto %}
+      <img class="escudo-circulo jogador-historico-foto" src="{{ url_for('static', filename='jogadores/' ~ jogador.foto) }}" alt="Foto de {{ jogador.nome_completo }}">
+    {% else %}
+      <span class="escudo-placeholder-circulo jogador-historico-foto"><i class="bi bi-person"></i></span>
+    {% endif %}
+    <div>
+      <h5 class="mb-0 fw-bold">{{ jogador.apelido or jogador.nome_completo }}</h5>
+      {% if jogador.apelido %}<div class="text-secondary small">{{ jogador.nome_completo }}</div>{% endif %}
+      <div class="text-secondary small">Temporada {{ ano_atual }} &middot; {{ partidas|length }} jogo{{ 's' if partidas|length != 1 }} com gol</div>
+    </div>
+  </div>
+
+  {% if not partidas %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-dribbble fs-2 d-block mb-2"></i>
+      Nenhum gol registrado nessa temporada ainda.
+    </div>
+  {% else %}
+    <div class="jogador-historico-lista">
+      {% for p in partidas %}
+        <div class="jogador-historico-linha">
+          <div class="jogador-historico-escudo-wrap">
+            {% if p.adversario_escudo %}
+              <img class="escudo-circulo" src="{{ url_for('static', filename='escudos/' ~ p.adversario_escudo) }}" alt="Escudo {{ p.adversario_nome }}">
+            {% else %}
+              <span class="escudo-placeholder-circulo"><i class="bi bi-shield"></i></span>
+            {% endif %}
+          </div>
+          <div class="jogador-historico-info">
+            <div class="fw-semibold">
+              {{ time_fixo if p.mandante != 'fora' else p.adversario_nome }}
+              <span class="text-secondary fw-normal">x</span>
+              {{ p.adversario_nome if p.mandante != 'fora' else time_fixo }}
+            </div>
+            <div class="text-secondary small">
+              <i class="bi bi-{{ 'house-door' if p.mandante != 'fora' else 'airplane' }}"></i>
+              {{ 'Casa' if p.mandante != 'fora' else 'Fora' }}
+              &middot; <i class="bi bi-calendar-event"></i>
+              {{ p.data[8:10] }}/{{ p.data[5:7] }}/{{ p.data[0:4] }}
+            </div>
+          </div>
+          <div class="jogador-historico-gols-valor">
+            <span class="badge rounded-pill badge-confirmado">
+              {{ p.quantidade }} gol{{ 's' if p.quantidade != 1 }}
+            </span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

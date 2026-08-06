@@ -48,7 +48,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.9.3"
+APP_VERSION = "3.10.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -782,6 +782,36 @@ def artilharia():
         time_fixo=TIME_FIXO,
         ano_atual=ano_atual,
         top_artilheiros=top_artilheiros,
+    )
+
+
+@app.route("/artilharia/jogador/<int:jogador_id>")
+def artilharia_jogador(jogador_id):
+    conn = get_db()
+    ano_atual = date.today().year
+    jogador = conn.execute(
+        "SELECT id, nome_completo, apelido, foto FROM jogadores WHERE id = ?", (jogador_id,)
+    ).fetchone()
+    if not jogador:
+        abort(404)
+    partidas = conn.execute(
+        """
+        SELECT jogos.data, jogos.mandante, gols.quantidade,
+               times.nome AS adversario_nome, times.escudo AS adversario_escudo
+        FROM gols
+        JOIN jogos ON jogos.id = gols.jogo_id
+        JOIN times ON times.id = jogos.adversario_id
+        WHERE gols.jogador_id = ? AND jogos.data LIKE ?
+        ORDER BY jogos.data DESC
+        """,
+        (jogador_id, f"{ano_atual}-%"),
+    ).fetchall()
+    return render_template(
+        "jogador_historico_gols.html",
+        jogador=jogador,
+        partidas=partidas,
+        ano_atual=ano_atual,
+        time_fixo=TIME_FIXO,
     )
 
 

@@ -342,6 +342,8 @@
       position: relative;
     }
     .artilheiro-linha:hover { background: rgba(15, 74, 44, .05); }
+    .artilheiro-clicavel { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .artilheiro-clicavel:active { transform: scale(.99); }
     .artilheiro-linha:not(:last-child) { border-bottom: 1px solid #eef1f3; }
     .artilheiro-podio {
       background: rgba(201, 162, 39, .07);
@@ -406,6 +408,23 @@
     [data-bs-theme="dark"] .artilheiro-podio-3 { background: rgba(215, 160, 103, .06); }
     [data-bs-theme="dark"] .artilheiro-posicao:not(.ouro):not(.prata):not(.bronze) { background: #1e2529; color: #9aa4ab; }
     [data-bs-theme="dark"] .artilheiro-stat-valor { color: #6bcf8f; }
+
+    /* ---------- Histórico de gols do jogador (modal) ---------- */
+    .jogador-historico-foto { width: 64px; height: 64px; flex-shrink: 0; }
+    .jogador-historico-lista { display: flex; flex-direction: column; }
+    .jogador-historico-linha {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      padding: .85rem 1.25rem;
+      border-top: 1px solid #eef1f3;
+      animation: agendaEntrada .3s ease both;
+    }
+    [data-bs-theme="dark"] .jogador-historico-linha { border-top-color: #2c353b; }
+    .jogador-historico-escudo-wrap .escudo-circulo,
+    .jogador-historico-escudo-wrap .escudo-placeholder-circulo { width: 40px; height: 40px; flex-shrink: 0; }
+    .jogador-historico-info { flex: 1 1 auto; min-width: 0; }
+    .jogador-historico-gols-valor { flex-shrink: 0; }
 
     /* ---------- Lista de times no celular (sem precisar arrastar pro lado) ---------- */
     .time-linha-mobile {
@@ -785,6 +804,20 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalJogador" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-dribbble me-1"></i> Histórico de gols</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body bg-body-tertiary p-0" id="modalJogadorBody">
+          <div class="text-center py-5"><span class="spinner-border" style="color: var(--sao-verde);"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
@@ -828,6 +861,21 @@
         agendaInjetarHtmlComScripts(body, html);
       } catch (erro) {
         body.innerHTML = '<div class="alert alert-danger m-3">Não foi possível carregar o formulário.</div>';
+      }
+    }
+
+    async function agendaAbrirModalJogador(url) {
+      var modalEl = document.getElementById('modalJogador');
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      var body = document.getElementById('modalJogadorBody');
+      body.innerHTML = '<div class="text-center py-5"><span class="spinner-border" style="color: var(--sao-verde);"></span></div>';
+      modal.show();
+      try {
+        var resposta = await fetch(url);
+        var html = await resposta.text();
+        body.innerHTML = html;
+      } catch (erro) {
+        body.innerHTML = '<div class="alert alert-danger m-3">Não foi possível carregar o histórico.</div>';
       }
     }
 
