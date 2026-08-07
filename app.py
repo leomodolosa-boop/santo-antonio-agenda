@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.13.0"
+APP_VERSION = "3.14.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -1163,39 +1163,58 @@ def mensalidades():
         ano, mes = ano_padrao, mes_padrao
     status_filtro = request.args.get("status", "todos")
 
+    indice_atual = MESES_MENSALIDADE_DISPONIVEIS.index((ano, mes))
+    meses_ate_atual = MESES_MENSALIDADE_DISPONIVEIS[: indice_atual + 1]
+
     jogadores_rows = conn.execute(
-        """
-        SELECT j.id, j.nome_completo, j.apelido, j.foto,
-               m.status AS status_mensalidade, m.data_pagamento, m.observacao, m.valor
-        FROM jogadores j
-        LEFT JOIN mensalidades m
-            ON m.jogador_id = j.id AND m.ano = ? AND m.mes = ?
-        WHERE j.participa_mensalidade = 1
-        ORDER BY j.nome_completo ASC
-        """,
-        (ano, mes),
+        "SELECT id, nome_completo, apelido, foto FROM jogadores WHERE participa_mensalidade = 1 ORDER BY nome_completo ASC"
     ).fetchall()
 
+    condicoes = " OR ".join(["(ano = ? AND mes = ?)"] * len(meses_ate_atual))
+    parametros = [v for par in meses_ate_atual for v in par]
+    mensalidades_rows = conn.execute(
+        f"SELECT jogador_id, ano, mes, status, data_pagamento, observacao, valor FROM mensalidades WHERE {condicoes}",
+        parametros,
+    ).fetchall()
+    mapa_mensalidades = {(r["jogador_id"], r["ano"], r["mes"]): r for r in mensalidades_rows}
+
     registros = []
-    for row in jogadores_rows:
-        status = row["status_mensalidade"] or "aberto"
-        valor = row["valor"] or VALOR_MENSALIDADE_PADRAO
+    for j in jogadores_rows:
+        atual = mapa_mensalidades.get((j["id"], ano, mes))
+        status = atual["status"] if atual else "aberto"
+        valor = (atual["valor"] if atual else None) or VALOR_MENSALIDADE_PADRAO
+
+        meses_pendentes = []
+        valor_pendente_anterior = 0.0
+        for ano_p, mes_p in meses_ate_atual[:-1]:
+            reg_p = mapa_mensalidades.get((j["id"], ano_p, mes_p))
+            status_p = reg_p["status"] if reg_p else "aberto"
+            if status_p != "pago":
+                valor_p = float((reg_p["valor"] if reg_p else None) or VALOR_MENSALIDADE_PADRAO)
+                valor_pendente_anterior += valor_p
+                meses_pendentes.append(MESES_PT[mes_p])
+
+        tem_pendencia_anterior = status != "pago" and len(meses_pendentes) > 0
+        valor_total = float(valor) + valor_pendente_anterior if status != "pago" else float(valor)
+
         registros.append({
-            "id": row["id"],
-            "nome_completo": row["nome_completo"],
-            "apelido": row["apelido"],
-            "foto": row["foto"],
+            "id": j["id"],
+            "nome_completo": j["nome_completo"],
+            "apelido": j["apelido"],
+            "foto": j["foto"],
             "status": status,
-            "data_pagamento": row["data_pagamento"],
-            "observacao": row["observacao"],
+            "data_pagamento": atual["data_pagamento"] if atual else None,
+            "observacao": atual["observacao"] if atual else None,
             "valor": valor,
             "valor_fmt": _formatar_valor_brl(valor),
+            "valor_total_fmt": _formatar_valor_brl(f"{valor_total:.2f}"),
+            "meses_pendentes": meses_pendentes,
+            "tem_pendencia_anterior": tem_pendencia_anterior,
         })
 
     if status_filtro in ("pago", "aberto"):
         registros = [r for r in registros if r["status"] == status_filtro]
 
-    indice_atual = MESES_MENSALIDADE_DISPONIVEIS.index((ano, mes))
     anterior = MESES_MENSALIDADE_DISPONIVEIS[indice_atual - 1] if indice_atual > 0 else None
     seguinte = (
         MESES_MENSALIDADE_DISPONIVEIS[indice_atual + 1]

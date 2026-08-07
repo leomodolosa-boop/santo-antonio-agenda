@@ -1630,10 +1630,13 @@
 
       const W = 1080;
       const topoH = 300;
-      const linhaAltura = 130;
+      const linhaAlturaBase = 130;
+      const linhaAlturaPendente = 172;
       const rodapeH = 90;
       const margem = 60;
-      const H = topoH + registros.length * linhaAltura + rodapeH + margem;
+      const alturaLinha = (r) => (r.tem_pendencia_anterior ? linhaAlturaPendente : linhaAlturaBase);
+      const alturaTotalLinhas = registros.reduce((soma, r) => soma + alturaLinha(r), 0);
+      const H = topoH + alturaTotalLinhas + rodapeH + margem;
 
       const canvas = document.createElement('canvas');
       canvas.width = W;
@@ -1679,35 +1682,60 @@
       ctx.fillText(subtitulo, W / 2, pillY + pillH / 2 + 2);
       ctx.textBaseline = 'alphabetic';
 
-      registros.forEach((r, i) => {
-        const y = topoH + 30 + linhaAltura * i;
-        const cardH = linhaAltura - 24;
+      let cursorY = topoH + 30;
+      registros.forEach((r) => {
+        const alturaEsta = alturaLinha(r);
+        const y = cursorY;
+        const cardH = alturaEsta - 24;
         const pago = r.status === 'pago';
+        const pendente = !!r.tem_pendencia_anterior;
+        const corDestaque = pendente ? '#c0392b' : (pago ? '#0f4a2c' : '#6b1522');
 
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,.12)';
         ctx.shadowBlur = 14;
         ctx.shadowOffsetY = 4;
         agendaRoundRect(ctx, margem, y, W - margem * 2, cardH, 20);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = pendente ? '#fdf1ef' : '#ffffff';
         ctx.fill();
         ctx.restore();
 
+        if (pendente) {
+          ctx.save();
+          agendaRoundRect(ctx, margem, y, W - margem * 2, cardH, 20);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#c0392b';
+          ctx.stroke();
+          ctx.restore();
+        }
+
         agendaRoundRect(ctx, margem, y, 10, cardH, 5);
-        ctx.fillStyle = pago ? '#0f4a2c' : '#6b1522';
+        ctx.fillStyle = corDestaque;
         ctx.fill();
 
         const nome = r.apelido || r.nome_completo;
+        const linha1Y = pendente ? y + 46 : y + cardH / 2 - 6;
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1a1a1a';
         ctx.font = '700 34px Inter, sans-serif';
-        ctx.fillText(nome, margem + 40, y + cardH / 2 - 6);
+        ctx.fillText(nome, margem + 40, linha1Y);
 
-        ctx.font = '500 26px Inter, sans-serif';
-        ctx.fillStyle = 'rgba(0,0,0,.55)';
-        ctx.fillText('R$ ' + r.valor_fmt, margem + 40, y + cardH / 2 + 32);
+        const valorTexto = pendente ? 'R$ ' + r.valor_total_fmt + ' em aberto' : 'R$ ' + r.valor_fmt;
+        ctx.font = pendente ? '700 26px Inter, sans-serif' : '500 26px Inter, sans-serif';
+        ctx.fillStyle = pendente ? '#c0392b' : 'rgba(0,0,0,.55)';
+        ctx.fillText(valorTexto, margem + 40, linha1Y + 38);
 
-        const rotulo = pago ? 'PAGA' : 'EM ABERTO';
+        if (pendente) {
+          const meses = r.meses_pendentes || [];
+          const listaMeses = meses.length <= 1
+            ? meses.join('')
+            : meses.slice(0, -1).join(', ') + ' e ' + meses[meses.length - 1];
+          ctx.font = '500 22px Inter, sans-serif';
+          ctx.fillStyle = 'rgba(0,0,0,.55)';
+          ctx.fillText('Pendente: ' + listaMeses, margem + 40, linha1Y + 74);
+        }
+
+        const rotulo = pago ? 'PAGA' : (pendente ? 'INADIMPLENTE' : 'EM ABERTO');
         ctx.font = '700 24px Inter, sans-serif';
         const larguraRotulo = ctx.measureText(rotulo).width;
         const badgeW = larguraRotulo + 48;
@@ -1715,13 +1743,15 @@
         const badgeX = W - margem - 30 - badgeW;
         const badgeY = y + cardH / 2 - badgeH / 2;
         agendaRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
-        ctx.fillStyle = pago ? '#0f4a2c' : '#6b1522';
+        ctx.fillStyle = corDestaque;
         ctx.fill();
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffffff';
         ctx.textBaseline = 'middle';
         ctx.fillText(rotulo, badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
         ctx.textBaseline = 'alphabetic';
+
+        cursorY += alturaEsta;
       });
 
       ctx.textAlign = 'center';
