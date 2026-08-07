@@ -394,8 +394,10 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'aberto',
                 data_pagamento TEXT,
                 observacao TEXT,
+                valor TEXT,
                 UNIQUE(jogador_id, ano, mes)
             );
+            ALTER TABLE mensalidades ADD COLUMN IF NOT EXISTS valor TEXT;
             """
         )
     else:
@@ -472,6 +474,7 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'aberto',
                 data_pagamento TEXT,
                 observacao TEXT,
+                valor TEXT,
                 UNIQUE(jogador_id, ano, mes)
             );
             """
@@ -517,6 +520,11 @@ def init_db():
                 conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} INTEGER NOT NULL DEFAULT 1")
         if "perm_mensalidades" not in colunas_usuarios:
             conn.execute("ALTER TABLE usuarios ADD COLUMN perm_mensalidades INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
+        colunas_mensalidades = {row["name"] for row in conn.execute("PRAGMA table_info(mensalidades)")}
+        if "valor" not in colunas_mensalidades:
+            conn.execute("ALTER TABLE mensalidades ADD COLUMN valor TEXT")
         conn.commit()
 
     # Só semeia os times iniciais se a tabela estiver vazia (primeiro boot).

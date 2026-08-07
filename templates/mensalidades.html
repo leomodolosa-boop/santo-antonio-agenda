@@ -10,20 +10,22 @@
         <div class="subtitle">Controle interno — {{ nome_mes }} {{ ano }}</div>
       </div>
       <div class="d-flex gap-2 pill-nav">
-        <a class="btn btn-light btn-sm" href="{{ url_for('mensalidades', ano=ano_mes_anterior, mes=mes_anterior, status=status_filtro) }}">
-          <i class="bi bi-chevron-left"></i> Anterior
-        </a>
-        <a class="btn btn-light btn-sm" href="{{ url_for('mensalidades', ano=ano_mes_seguinte, mes=mes_seguinte, status=status_filtro) }}">
-          Próximo <i class="bi bi-chevron-right"></i>
-        </a>
+        {% if mes_anterior %}
+          <a class="btn btn-light btn-sm" href="{{ url_for('mensalidades', ano=ano_mes_anterior, mes=mes_anterior, status=status_filtro) }}">
+            <i class="bi bi-chevron-left"></i> Anterior
+          </a>
+        {% endif %}
+        {% if mes_seguinte %}
+          <a class="btn btn-light btn-sm" href="{{ url_for('mensalidades', ano=ano_mes_seguinte, mes=mes_seguinte, status=status_filtro) }}">
+            Próximo <i class="bi bi-chevron-right"></i>
+          </a>
+        {% endif %}
       </div>
     </div>
-    {% set meses_abrev = ['Ja', 'Fe', 'Ma', 'Ab', 'Mai', 'Jun', 'Jul', 'Ag', 'Se', 'Ou', 'No', 'Dez'] %}
     <div class="mes-nav mt-3" id="mes-nav">
-      {% for abrev in meses_abrev %}
-        {% set num_mes = loop.index %}
-        <a class="mes-nav-item {{ 'active' if num_mes == mes else '' }}"
-           href="{{ url_for('mensalidades', ano=ano, mes=num_mes, status=status_filtro) }}">{{ abrev }}</a>
+      {% for ano_disp, mes_disp in meses_disponiveis %}
+        <a class="mes-nav-item {{ 'active' if mes_disp == mes and ano_disp == ano else '' }}"
+           href="{{ url_for('mensalidades', ano=ano_disp, mes=mes_disp, status=status_filtro) }}">{{ meses_pt[mes_disp][:3] }}</a>
       {% endfor %}
     </div>
   </div>
@@ -42,21 +44,31 @@
 
 {% block content %}
 
-<ul class="nav nav-pills mb-4">
-  <li class="nav-item">
-    <a class="nav-link {{ 'active' if status_filtro == 'todos' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='todos') }}">Todos</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link {{ 'active' if status_filtro == 'pago' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='pago') }}">
-      <i class="bi bi-check-circle-fill text-success"></i> Pagos
-    </a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link {{ 'active' if status_filtro == 'aberto' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='aberto') }}">
-      <i class="bi bi-exclamation-circle-fill text-danger"></i> Em aberto
-    </a>
-  </li>
-</ul>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+  <ul class="nav nav-pills mb-0">
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if status_filtro == 'todos' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='todos') }}">Todos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if status_filtro == 'pago' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='pago') }}">
+        <i class="bi bi-check-circle-fill text-success"></i> Pagos
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if status_filtro == 'aberto' }}" href="{{ url_for('mensalidades', ano=ano, mes=mes, status='aberto') }}">
+        <i class="bi bi-exclamation-circle-fill text-danger"></i> Em aberto
+      </a>
+    </li>
+  </ul>
+  {% if registros %}
+    <button type="button" class="btn btn-outline-brand btn-sm"
+      data-mes="{{ nome_mes }}" data-ano="{{ ano }}"
+      data-registros='{{ registros | tojson }}'
+      onclick="compartilharMensalidades(this)">
+      <i class="bi bi-share"></i> Compartilhar
+    </button>
+  {% endif %}
+</div>
 
 {% if not registros %}
   <div class="card">
@@ -84,6 +96,7 @@
             {% endif %}
             <div class="flex-grow-1 min-w-0">
               <div class="fw-semibold text-truncate">{{ r.apelido or r.nome_completo }}</div>
+              <div class="text-muted small">R$ {{ r.valor_fmt }}</div>
               {% if r.status == 'pago' %}
                 <span class="badge rounded-pill badge-confirmado"><i class="bi bi-check-circle-fill"></i> Paga</span>
                 {% if r.data_pagamento %}

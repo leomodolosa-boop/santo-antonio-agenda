@@ -1622,6 +1622,153 @@
         btn.innerHTML = textoOriginal;
       }
     }
+
+    async function agendaGerarImagemMensalidades({ mes, ano, registros }) {
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) {}
+      }
+
+      const W = 1080;
+      const topoH = 300;
+      const linhaAltura = 130;
+      const rodapeH = 90;
+      const margem = 60;
+      const H = topoH + registros.length * linhaAltura + rodapeH + margem;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      agendaRoundRect(ctx, 0, 0, W, H, 44);
+      ctx.clip();
+      ctx.fillStyle = '#f6f6f4';
+      ctx.fillRect(0, 0, W, H);
+
+      const grad = ctx.createLinearGradient(0, 0, W, topoH);
+      grad.addColorStop(0, '#6b1522');
+      grad.addColorStop(1, '#0f4a2c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, topoH);
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(0, topoH - 3, W, 6);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 54px Inter, sans-serif';
+      ctx.fillText('💰 MENSALIDADES', W / 2, 118);
+
+      const subtitulo = (mes + ' ' + ano).toUpperCase();
+      ctx.font = '600 26px Inter, sans-serif';
+      const larguraSubtitulo = ctx.measureText(subtitulo).width;
+      const pillW = larguraSubtitulo + 64;
+      const pillH = 52;
+      const pillX = W / 2 - pillW / 2;
+      const pillY = 156;
+      ctx.save();
+      agendaRoundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,.45)';
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(subtitulo, W / 2, pillY + pillH / 2 + 2);
+      ctx.textBaseline = 'alphabetic';
+
+      registros.forEach((r, i) => {
+        const y = topoH + 30 + linhaAltura * i;
+        const cardH = linhaAltura - 24;
+        const pago = r.status === 'pago';
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.12)';
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 4;
+        agendaRoundRect(ctx, margem, y, W - margem * 2, cardH, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+
+        agendaRoundRect(ctx, margem, y, 10, cardH, 5);
+        ctx.fillStyle = pago ? '#0f4a2c' : '#6b1522';
+        ctx.fill();
+
+        const nome = r.apelido || r.nome_completo;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = '700 34px Inter, sans-serif';
+        ctx.fillText(nome, margem + 40, y + cardH / 2 - 6);
+
+        ctx.font = '500 26px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(0,0,0,.55)';
+        ctx.fillText('R$ ' + r.valor_fmt, margem + 40, y + cardH / 2 + 32);
+
+        const rotulo = pago ? 'PAGA' : 'EM ABERTO';
+        ctx.font = '700 24px Inter, sans-serif';
+        const larguraRotulo = ctx.measureText(rotulo).width;
+        const badgeW = larguraRotulo + 48;
+        const badgeH = 46;
+        const badgeX = W - margem - 30 - badgeW;
+        const badgeY = y + cardH / 2 - badgeH / 2;
+        agendaRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+        ctx.fillStyle = pago ? '#0f4a2c' : '#6b1522';
+        ctx.fill();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(rotulo, badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
+        ctx.textBaseline = 'alphabetic';
+      });
+
+      ctx.textAlign = 'center';
+      ctx.font = '600 24px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(0,0,0,.4)';
+      ctx.fillText('⚽ Agenda Santo Antônio do Oriente', W / 2, H - 34);
+
+      ctx.restore();
+
+      return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    }
+
+    async function compartilharMensalidades(btn) {
+      const d = btn.dataset;
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando...';
+      try {
+        const registros = JSON.parse(d.registros || '[]');
+        const blob = await agendaGerarImagemMensalidades({ mes: d.mes, ano: d.ano, registros: registros });
+        const nomeArquivo = 'mensalidades-' + d.mes.toLowerCase() + '-' + d.ano + '.png';
+        const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+        const textoCompartilhar = '💰 Mensalidades — ' + d.mes + ' ' + d.ano;
+
+        if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+          await navigator.share({ files: [arquivo], title: 'Mensalidades ' + d.mes, text: textoCompartilhar });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = nomeArquivo;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          alert('Imagem baixada! Agora e so anexar no WhatsApp.');
+        }
+      } catch (erro) {
+        if (erro.name !== 'AbortError') {
+          console.error(erro);
+          alert('Nao foi possivel gerar a imagem.');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+    }
   </script>
 </body>
 </html>

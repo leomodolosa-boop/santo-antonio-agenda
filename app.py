@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.12.1"
+APP_VERSION = "3.13.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -1118,19 +1118,55 @@ def jogadores_excluir(jogador_id):
     return redirect(url_for("jogadores"))
 
 
+# Controle de mensalidades começou em agosto/2026 — só esses meses ficam
+# disponíveis pra seleção (evita abrir meses "vazios" sem sentido pro
+# controle, tipo janeiro/2026, que é antes do início do acompanhamento).
+MESES_MENSALIDADE_DISPONIVEIS = [(2026, 8), (2026, 9), (2026, 10), (2026, 11), (2026, 12)]
+VALOR_MENSALIDADE_PADRAO = "50.00"
+
+
+def _mes_mensalidade_valido(ano, mes):
+    return (ano, mes) in MESES_MENSALIDADE_DISPONIVEIS
+
+
+def _parse_valor_mensalidade(texto):
+    texto = (texto or "").strip().replace("R$", "").strip()
+    if not texto:
+        return None
+    texto = texto.replace(".", "").replace(",", ".") if "," in texto else texto
+    try:
+        numero = float(texto)
+    except ValueError:
+        return None
+    if numero < 0:
+        return None
+    return f"{numero:.2f}"
+
+
+def _formatar_valor_brl(valor_str):
+    valor_str = valor_str or VALOR_MENSALIDADE_PADRAO
+    try:
+        numero = float(valor_str)
+    except (TypeError, ValueError):
+        numero = float(VALOR_MENSALIDADE_PADRAO)
+    return f"{numero:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
 @app.route("/mensalidades")
 @permissao_obrigatoria("perm_mensalidades")
 def mensalidades():
     conn = get_db()
-    hoje = date.today()
-    ano = int(request.args.get("ano", hoje.year))
-    mes = int(request.args.get("mes", hoje.month))
+    ano_padrao, mes_padrao = MESES_MENSALIDADE_DISPONIVEIS[0]
+    ano = int(request.args.get("ano", ano_padrao))
+    mes = int(request.args.get("mes", mes_padrao))
+    if not _mes_mensalidade_valido(ano, mes):
+        ano, mes = ano_padrao, mes_padrao
     status_filtro = request.args.get("status", "todos")
 
     jogadores_rows = conn.execute(
         """
         SELECT j.id, j.nome_completo, j.apelido, j.foto,
-               m.status AS status_mensalidade, m.data_pagamento, m.observacao
+               m.status AS status_mensalidade, m.data_pagamento, m.observacao, m.valor
         FROM jogadores j
         LEFT JOIN mensalidades m
             ON m.jogador_id = j.id AND m.ano = ? AND m.mes = ?
@@ -1143,6 +1179,7 @@ def mensalidades():
     registros = []
     for row in jogadores_rows:
         status = row["status_mensalidade"] or "aberto"
+        valor = row["valor"] or VALOR_MENSALIDADE_PADRAO
         registros.append({
             "id": row["id"],
             "nome_completo": row["nome_completo"],
@@ -1151,15 +1188,20 @@ def mensalidades():
             "status": status,
             "data_pagamento": row["data_pagamento"],
             "observacao": row["observacao"],
+            "valor": valor,
+            "valor_fmt": _formatar_valor_brl(valor),
         })
 
     if status_filtro in ("pago", "aberto"):
         registros = [r for r in registros if r["status"] == status_filtro]
 
-    mes_anterior = mes - 1 if mes > 1 else 12
-    ano_mes_anterior = ano if mes > 1 else ano - 1
-    mes_seguinte = mes + 1 if mes < 12 else 1
-    ano_mes_seguinte = ano if mes < 12 else ano + 1
+    indice_atual = MESES_MENSALIDADE_DISPONIVEIS.index((ano, mes))
+    anterior = MESES_MENSALIDADE_DISPONIVEIS[indice_atual - 1] if indice_atual > 0 else None
+    seguinte = (
+        MESES_MENSALIDADE_DISPONIVEIS[indice_atual + 1]
+        if indice_atual < len(MESES_MENSALIDADE_DISPONIVEIS) - 1
+        else None
+    )
 
     return render_template(
         "mensalidades.html",
@@ -1168,10 +1210,12 @@ def mensalidades():
         mes=mes,
         nome_mes=MESES_PT[mes],
         status_filtro=status_filtro,
-        mes_anterior=mes_anterior,
-        ano_mes_anterior=ano_mes_anterior,
-        mes_seguinte=mes_seguinte,
-        ano_mes_seguinte=ano_mes_seguinte,
+        meses_disponiveis=MESES_MENSALIDADE_DISPONIVEIS,
+        meses_pt=MESES_PT,
+        ano_mes_anterior=anterior[0] if anterior else None,
+        mes_anterior=anterior[1] if anterior else None,
+        ano_mes_seguinte=seguinte[0] if seguinte else None,
+        mes_seguinte=seguinte[1] if seguinte else None,
     )
 
 
@@ -1186,8 +1230,11 @@ def mensalidades_registrar(jogador_id):
     if not jogador_row:
         abort(404)
 
-    ano = int(request.values.get("ano", date.today().year))
-    mes = int(request.values.get("mes", date.today().month))
+    ano_padrao, mes_padrao = MESES_MENSALIDADE_DISPONIVEIS[0]
+    ano = int(request.values.get("ano", ano_padrao))
+    mes = int(request.values.get("mes", mes_padrao))
+    if not _mes_mensalidade_valido(ano, mes):
+        ano, mes = ano_padrao, mes_padrao
 
     if request.method == "POST":
         status = request.form.get("status", "aberto")
@@ -1195,6 +1242,7 @@ def mensalidades_registrar(jogador_id):
             status = "aberto"
         data_pagamento = request.form.get("data_pagamento", "").strip() or None
         observacao = request.form.get("observacao", "").strip() or None
+        valor = _parse_valor_mensalidade(request.form.get("valor")) or VALOR_MENSALIDADE_PADRAO
 
         existente = conn.execute(
             "SELECT id FROM mensalidades WHERE jogador_id = ? AND ano = ? AND mes = ?",
@@ -1202,22 +1250,22 @@ def mensalidades_registrar(jogador_id):
         ).fetchone()
         if existente:
             conn.execute(
-                "UPDATE mensalidades SET status = ?, data_pagamento = ?, observacao = ? WHERE id = ?",
-                (status, data_pagamento, observacao, existente["id"]),
+                "UPDATE mensalidades SET status = ?, data_pagamento = ?, observacao = ?, valor = ? WHERE id = ?",
+                (status, data_pagamento, observacao, valor, existente["id"]),
             )
         else:
             conn.execute(
                 """
-                INSERT INTO mensalidades (jogador_id, ano, mes, status, data_pagamento, observacao)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO mensalidades (jogador_id, ano, mes, status, data_pagamento, observacao, valor)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (jogador_id, ano, mes, status, data_pagamento, observacao),
+                (jogador_id, ano, mes, status, data_pagamento, observacao, valor),
             )
         conn.commit()
         return redirect(url_for("mensalidades", ano=ano, mes=mes))
 
     registro = conn.execute(
-        "SELECT status, data_pagamento, observacao FROM mensalidades WHERE jogador_id = ? AND ano = ? AND mes = ?",
+        "SELECT status, data_pagamento, observacao, valor FROM mensalidades WHERE jogador_id = ? AND ano = ? AND mes = ?",
         (jogador_id, ano, mes),
     ).fetchone()
 
@@ -1228,6 +1276,7 @@ def mensalidades_registrar(jogador_id):
         ano=ano,
         mes=mes,
         nome_mes=MESES_PT[mes],
+        valor_padrao=VALOR_MENSALIDADE_PADRAO,
     )
 
 
