@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.12.0"
+APP_VERSION = "3.12.1"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -251,6 +251,34 @@ def usuarios():
 
     lista = conn.execute("SELECT * FROM usuarios ORDER BY nome").fetchall()
     return render_template("usuarios.html", usuarios=lista, erro=erro)
+
+
+@app.route("/usuarios/<int:usuario_id>/permissoes", methods=["POST"])
+@permissao_obrigatoria("perm_usuarios")
+def usuarios_permissoes(usuario_id):
+    conn = get_db()
+    usuario_row = conn.execute("SELECT id FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
+    if not usuario_row:
+        abort(404)
+    perm_jogos = 1 if request.form.get("perm_jogos") else 0
+    perm_times = 1 if request.form.get("perm_times") else 0
+    perm_jogadores = 1 if request.form.get("perm_jogadores") else 0
+    perm_usuarios = 1 if request.form.get("perm_usuarios") else 0
+    perm_confirmar_jogos = 1 if request.form.get("perm_confirmar_jogos") else 0
+    perm_mensalidades = 1 if request.form.get("perm_mensalidades") else 0
+    if usuario_id == session.get("usuario_id"):
+        perm_usuarios = 1
+    conn.execute(
+        """
+        UPDATE usuarios SET perm_jogos = ?, perm_times = ?, perm_jogadores = ?, perm_usuarios = ?,
+               perm_confirmar_jogos = ?, perm_mensalidades = ?
+        WHERE id = ?
+        """,
+        (perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos, perm_mensalidades, usuario_id),
+    )
+    conn.commit()
+    flash("Permissões atualizadas.")
+    return redirect(url_for("usuarios"))
 
 
 @app.route("/usuarios/<int:usuario_id>/excluir", methods=["POST"])

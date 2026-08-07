@@ -108,15 +108,54 @@
             </div>
           </td>
           <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#permissoes-{{ u.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
             {% if u.id != usuario_logado.id %}
-              <form method="post" action="{{ url_for('usuarios_excluir', usuario_id=u.id) }}"
+              <form method="post" action="{{ url_for('usuarios_excluir', usuario_id=u.id) }}" class="d-inline"
                 onsubmit="return confirm('Excluir o usuário {{ u.nome }}?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
               </form>
-            {% else %}
-              <span class="text-secondary small">Você</span>
             {% endif %}
+          </td>
+        </tr>
+        <tr class="collapse" id="permissoes-{{ u.id }}">
+          <td colspan="4" class="bg-body-tertiary">
+            <form method="post" action="{{ url_for('usuarios_permissoes', usuario_id=u.id) }}" class="py-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_jogos" id="perm_jogos_{{ u.id }}" {% if u.perm_jogos %}checked{% endif %}>
+                  <label class="form-check-label" for="perm_jogos_{{ u.id }}">Jogos e resultados</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_confirmar_jogos" id="perm_confirmar_jogos_{{ u.id }}" {% if u.perm_confirmar_jogos %}checked{% endif %}>
+                  <label class="form-check-label" for="perm_confirmar_jogos_{{ u.id }}">Confirmar jogos</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_times" id="perm_times_{{ u.id }}" {% if u.perm_times %}checked{% endif %}>
+                  <label class="form-check-label" for="perm_times_{{ u.id }}">Times</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_jogadores" id="perm_jogadores_{{ u.id }}" {% if u.perm_jogadores %}checked{% endif %}>
+                  <label class="form-check-label" for="perm_jogadores_{{ u.id }}">Jogadores</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_usuarios" id="perm_usuarios_{{ u.id }}" {% if u.perm_usuarios %}checked{% endif %}
+                    {% if u.id == usuario_logado.id %}disabled{% endif %}>
+                  <label class="form-check-label" for="perm_usuarios_{{ u.id }}">Usuários</label>
+                  {% if u.id == usuario_logado.id %}
+                    <input type="hidden" name="perm_usuarios" value="on">
+                  {% endif %}
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="perm_mensalidades" id="perm_mensalidades_{{ u.id }}" {% if u.perm_mensalidades %}checked{% endif %}>
+                  <label class="form-check-label" for="perm_mensalidades_{{ u.id }}">Mensalidades</label>
+                </div>
+                <button type="submit" class="btn btn-sm btn-brand ms-auto"><i class="bi bi-check-lg"></i> Salvar permissões</button>
+              </div>
+            </form>
           </td>
         </tr>
         {% endfor %}
