@@ -363,6 +363,7 @@ def init_db():
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_jogadores INTEGER NOT NULL DEFAULT 1;
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_usuarios INTEGER NOT NULL DEFAULT 1;
             ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_mensalidades INTEGER NOT NULL DEFAULT 0;
             CREATE TABLE IF NOT EXISTS jogadores (
                 id SERIAL PRIMARY KEY,
                 nome_completo TEXT NOT NULL,
@@ -373,15 +374,27 @@ def init_db():
                 foto TEXT,
                 foto_dados BYTEA,
                 data_cadastro TEXT NOT NULL,
-                conta_estatisticas INTEGER NOT NULL DEFAULT 1
+                conta_estatisticas INTEGER NOT NULL DEFAULT 1,
+                participa_mensalidade INTEGER NOT NULL DEFAULT 0
             );
             ALTER TABLE jogadores ADD COLUMN IF NOT EXISTS conta_estatisticas INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE jogadores ADD COLUMN IF NOT EXISTS participa_mensalidade INTEGER NOT NULL DEFAULT 0;
             CREATE TABLE IF NOT EXISTS gols (
                 id SERIAL PRIMARY KEY,
                 jogo_id INTEGER NOT NULL REFERENCES jogos(id) ON DELETE CASCADE,
                 jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
                 quantidade INTEGER NOT NULL DEFAULT 1,
                 UNIQUE(jogo_id, jogador_id)
+            );
+            CREATE TABLE IF NOT EXISTS mensalidades (
+                id SERIAL PRIMARY KEY,
+                jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
+                ano INTEGER NOT NULL,
+                mes INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'aberto',
+                data_pagamento TEXT,
+                observacao TEXT,
+                UNIQUE(jogador_id, ano, mes)
             );
             """
         )
@@ -426,7 +439,8 @@ def init_db():
                 perm_times INTEGER NOT NULL DEFAULT 1,
                 perm_jogadores INTEGER NOT NULL DEFAULT 1,
                 perm_usuarios INTEGER NOT NULL DEFAULT 1,
-                perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1
+                perm_confirmar_jogos INTEGER NOT NULL DEFAULT 1,
+                perm_mensalidades INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS jogadores (
@@ -438,7 +452,8 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'ativo',
                 foto TEXT,
                 data_cadastro TEXT NOT NULL,
-                conta_estatisticas INTEGER NOT NULL DEFAULT 1
+                conta_estatisticas INTEGER NOT NULL DEFAULT 1,
+                participa_mensalidade INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS gols (
@@ -447,6 +462,17 @@ def init_db():
                 jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
                 quantidade INTEGER NOT NULL DEFAULT 1,
                 UNIQUE(jogo_id, jogador_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS mensalidades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                jogador_id INTEGER NOT NULL REFERENCES jogadores(id) ON DELETE CASCADE,
+                ano INTEGER NOT NULL,
+                mes INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'aberto',
+                data_pagamento TEXT,
+                observacao TEXT,
+                UNIQUE(jogador_id, ano, mes)
             );
             """
         )
@@ -481,12 +507,16 @@ def init_db():
         colunas_jogadores = {row["name"] for row in conn.execute("PRAGMA table_info(jogadores)")}
         if "conta_estatisticas" not in colunas_jogadores:
             conn.execute("ALTER TABLE jogadores ADD COLUMN conta_estatisticas INTEGER NOT NULL DEFAULT 1")
+        if "participa_mensalidade" not in colunas_jogadores:
+            conn.execute("ALTER TABLE jogadores ADD COLUMN participa_mensalidade INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
         colunas_usuarios = {row["name"] for row in conn.execute("PRAGMA table_info(usuarios)")}
         for coluna in ("perm_jogos", "perm_times", "perm_jogadores", "perm_usuarios", "perm_confirmar_jogos"):
             if coluna not in colunas_usuarios:
                 conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} INTEGER NOT NULL DEFAULT 1")
+        if "perm_mensalidades" not in colunas_usuarios:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN perm_mensalidades INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
     # Só semeia os times iniciais se a tabela estiver vazia (primeiro boot).

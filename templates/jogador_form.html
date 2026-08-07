@@ -66,6 +66,14 @@
         </div>
       </div>
 
+      {% if perm_mensalidades %}
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="participa_mensalidade" id="participa_mensalidade"
+               {% if jogador.participa_mensalidade %}checked{% endif %}>
+        <label class="form-check-label" for="participa_mensalidade">Participa do controle de mensalidades</label>
+      </div>
+      {% endif %}
+
       <div class="form-text mb-4">Cadastrado em {{ jogador.data_cadastro[8:10] }}/{{ jogador.data_cadastro[5:7] }}/{{ jogador.data_cadastro[0:4] }}.</div>
 
       <div class="d-flex justify-content-between border-top pt-3">

@@ -1,0 +1,35 @@
+<div class="p-4">
+  <h6 class="fw-semibold mb-3">{{ jogador.apelido or jogador.nome_completo }} — {{ nome_mes }} {{ ano }}</h6>
+  <form method="post" action="{{ url_for('mensalidades_registrar', jogador_id=jogador.id, ano=ano, mes=mes) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold d-block">Situação</label>
+      <div class="btn-group w-100" role="group">
+        <input type="radio" class="btn-check" name="status" id="statusPago" value="pago" autocomplete="off"
+          {% if not registro or registro.status == 'pago' %}checked{% endif %}>
+        <label class="btn btn-outline-success" for="statusPago"><i class="bi bi-check-circle-fill"></i> Paga</label>
+
+        <input type="radio" class="btn-check" name="status" id="statusAberto" value="aberto" autocomplete="off"
+          {% if registro and registro.status == 'aberto' %}checked{% endif %}
+          {% if not registro %}checked{% endif %}>
+        <label class="btn btn-outline-danger" for="statusAberto"><i class="bi bi-exclamation-circle-fill"></i> Em aberto</label>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Data do pagamento <span class="text-muted small fw-normal">(opcional)</span></label>
+      <input type="date" class="form-control" name="data_pagamento" value="{{ registro.data_pagamento if registro else '' }}">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Observação <span class="text-muted small fw-normal">(opcional)</span></label>
+      <textarea class="form-control" name="observacao" rows="2">{{ registro.observacao if registro else '' }}</textarea>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 border-top pt-3">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      <button type="submit" class="btn btn-brand"><i class="bi bi-check-lg"></i> Salvar</button>
+    </div>
+  </form>
+</div>

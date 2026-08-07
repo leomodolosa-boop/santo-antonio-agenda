@@ -68,6 +68,10 @@
             <input class="form-check-input" type="checkbox" name="perm_usuarios" id="perm_usuarios_novo">
             <label class="form-check-label" for="perm_usuarios_novo">Usuários</label>
           </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perm_mensalidades" id="perm_mensalidades_novo">
+            <label class="form-check-label" for="perm_mensalidades_novo">Mensalidades</label>
+          </div>
         </div>
       </div>
     </form>
@@ -97,7 +101,8 @@
               {% if u.perm_times %}<span class="badge rounded-pill badge-confirmado">Times</span>{% endif %}
               {% if u.perm_jogadores %}<span class="badge rounded-pill badge-confirmado">Jogadores</span>{% endif %}
               {% if u.perm_usuarios %}<span class="badge rounded-pill badge-confirmado">Usuários</span>{% endif %}
-              {% if not (u.perm_jogos or u.perm_confirmar_jogos or u.perm_times or u.perm_jogadores or u.perm_usuarios) %}
+              {% if u.perm_mensalidades %}<span class="badge rounded-pill badge-confirmado">Mensalidades</span>{% endif %}
+              {% if not (u.perm_jogos or u.perm_confirmar_jogos or u.perm_times or u.perm_jogadores or u.perm_usuarios or u.perm_mensalidades) %}
                 <span class="badge rounded-pill badge-cancelado">Só consulta</span>
               {% endif %}
             </div>

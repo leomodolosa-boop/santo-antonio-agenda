@@ -52,7 +52,7 @@ csrf = CSRFProtect(app)
 # Defina SETUP_TOKEN no ambiente (Render → Environment) com um valor só seu.
 SETUP_TOKEN = os.environ.get("SETUP_TOKEN", "trocar-este-codigo-no-render")
 
-APP_VERSION = "3.11.0"
+APP_VERSION = "3.12.0"
 
 ESCUDOS_DIR = Path(__file__).parent / "static" / "escudos"
 ESCUDOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,7 +87,8 @@ def usuario_logado():
         conn = get_db()
         g.usuario_atual = conn.execute(
             """
-            SELECT id, nome, usuario, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos
+            SELECT id, nome, usuario, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios,
+                   perm_confirmar_jogos, perm_mensalidades
             FROM usuarios WHERE id = ?
             """,
             (session["usuario_id"],),
@@ -134,6 +135,7 @@ def injetar_contexto_global():
         "perm_jogadores": bool(usuario and usuario["perm_jogadores"]),
         "perm_usuarios": bool(usuario and usuario["perm_usuarios"]),
         "perm_confirmar_jogos": bool(usuario and usuario["perm_confirmar_jogos"]),
+        "perm_mensalidades": bool(usuario and usuario["perm_mensalidades"]),
         "escudo_fixo": row_escudo["escudo"] if row_escudo else None,
         "escudo_fixo_cor": row_escudo["escudo_cor"] if row_escudo else None,
         "campo_mapa_url_fixo": row_escudo["campo_mapa_url"] if row_escudo else None,
@@ -164,8 +166,8 @@ def configurar_master():
         else:
             conn.execute(
                 """
-                INSERT INTO usuarios (nome, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos)
-                VALUES (?, ?, ?, 'master', 1, 1, 1, 1, 1)
+                INSERT INTO usuarios (nome, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos, perm_mensalidades)
+                VALUES (?, ?, ?, 'master', 1, 1, 1, 1, 1, 1)
                 """,
                 (nome, usuario_login, generate_password_hash(senha)),
             )
@@ -226,6 +228,7 @@ def usuarios():
         perm_jogadores = 1 if request.form.get("perm_jogadores") else 0
         perm_usuarios = 1 if request.form.get("perm_usuarios") else 0
         perm_confirmar_jogos = 1 if request.form.get("perm_confirmar_jogos") else 0
+        perm_mensalidades = 1 if request.form.get("perm_mensalidades") else 0
 
         if not nome or not usuario_login or not senha:
             erro = "Preencha nome, usuário e senha."
@@ -236,11 +239,11 @@ def usuarios():
                 conn.execute(
                     """
                     INSERT INTO usuarios
-                        (nome, email, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos)
-                    VALUES (?, ?, ?, ?, 'master', ?, ?, ?, ?, ?)
+                        (nome, email, usuario, senha_hash, perfil, perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos, perm_mensalidades)
+                    VALUES (?, ?, ?, ?, 'master', ?, ?, ?, ?, ?, ?)
                     """,
                     (nome, email, usuario_login, generate_password_hash(senha),
-                     perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos),
+                     perm_jogos, perm_times, perm_jogadores, perm_usuarios, perm_confirmar_jogos, perm_mensalidades),
                 )
                 conn.commit()
             except (sqlite3.IntegrityError, ErroIntegridade):
@@ -1043,13 +1046,24 @@ def jogadores_editar(jogador_id):
         posicao = request.form.get("posicao", "").strip()
         numero_camisa = request.form.get("numero_camisa", "").strip()
         status = request.form.get("status", "ativo")
-        conn.execute(
-            """
-            UPDATE jogadores SET nome_completo = ?, apelido = ?, posicao = ?, numero_camisa = ?, status = ?
-            WHERE id = ?
-            """,
-            (nome_completo, apelido or None, posicao or None, numero_camisa or None, status, jogador_id),
-        )
+        usuario_atual = usuario_logado()
+        if usuario_atual and usuario_atual["perm_mensalidades"]:
+            participa_mensalidade = 1 if request.form.get("participa_mensalidade") else 0
+            conn.execute(
+                """
+                UPDATE jogadores SET nome_completo = ?, apelido = ?, posicao = ?, numero_camisa = ?, status = ?, participa_mensalidade = ?
+                WHERE id = ?
+                """,
+                (nome_completo, apelido or None, posicao or None, numero_camisa or None, status, participa_mensalidade, jogador_id),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE jogadores SET nome_completo = ?, apelido = ?, posicao = ?, numero_camisa = ?, status = ?
+                WHERE id = ?
+                """,
+                (nome_completo, apelido or None, posicao or None, numero_camisa or None, status, jogador_id),
+            )
         conn.commit()
         foto = salvar_foto_jogador(request.files.get("foto"), jogador_id, conn)
         if foto:
@@ -1074,6 +1088,119 @@ def jogadores_excluir(jogador_id):
         conn.execute("DELETE FROM jogadores WHERE id = ?", (jogador_id,))
         conn.commit()
     return redirect(url_for("jogadores"))
+
+
+@app.route("/mensalidades")
+@permissao_obrigatoria("perm_mensalidades")
+def mensalidades():
+    conn = get_db()
+    hoje = date.today()
+    ano = int(request.args.get("ano", hoje.year))
+    mes = int(request.args.get("mes", hoje.month))
+    status_filtro = request.args.get("status", "todos")
+
+    jogadores_rows = conn.execute(
+        """
+        SELECT j.id, j.nome_completo, j.apelido, j.foto,
+               m.status AS status_mensalidade, m.data_pagamento, m.observacao
+        FROM jogadores j
+        LEFT JOIN mensalidades m
+            ON m.jogador_id = j.id AND m.ano = ? AND m.mes = ?
+        WHERE j.participa_mensalidade = 1
+        ORDER BY j.nome_completo ASC
+        """,
+        (ano, mes),
+    ).fetchall()
+
+    registros = []
+    for row in jogadores_rows:
+        status = row["status_mensalidade"] or "aberto"
+        registros.append({
+            "id": row["id"],
+            "nome_completo": row["nome_completo"],
+            "apelido": row["apelido"],
+            "foto": row["foto"],
+            "status": status,
+            "data_pagamento": row["data_pagamento"],
+            "observacao": row["observacao"],
+        })
+
+    if status_filtro in ("pago", "aberto"):
+        registros = [r for r in registros if r["status"] == status_filtro]
+
+    mes_anterior = mes - 1 if mes > 1 else 12
+    ano_mes_anterior = ano if mes > 1 else ano - 1
+    mes_seguinte = mes + 1 if mes < 12 else 1
+    ano_mes_seguinte = ano if mes < 12 else ano + 1
+
+    return render_template(
+        "mensalidades.html",
+        registros=registros,
+        ano=ano,
+        mes=mes,
+        nome_mes=MESES_PT[mes],
+        status_filtro=status_filtro,
+        mes_anterior=mes_anterior,
+        ano_mes_anterior=ano_mes_anterior,
+        mes_seguinte=mes_seguinte,
+        ano_mes_seguinte=ano_mes_seguinte,
+    )
+
+
+@app.route("/mensalidades/<int:jogador_id>/registrar", methods=["GET", "POST"])
+@permissao_obrigatoria("perm_mensalidades")
+def mensalidades_registrar(jogador_id):
+    conn = get_db()
+    jogador_row = conn.execute(
+        "SELECT id, nome_completo, apelido FROM jogadores WHERE id = ? AND participa_mensalidade = 1",
+        (jogador_id,),
+    ).fetchone()
+    if not jogador_row:
+        abort(404)
+
+    ano = int(request.values.get("ano", date.today().year))
+    mes = int(request.values.get("mes", date.today().month))
+
+    if request.method == "POST":
+        status = request.form.get("status", "aberto")
+        if status not in ("pago", "aberto"):
+            status = "aberto"
+        data_pagamento = request.form.get("data_pagamento", "").strip() or None
+        observacao = request.form.get("observacao", "").strip() or None
+
+        existente = conn.execute(
+            "SELECT id FROM mensalidades WHERE jogador_id = ? AND ano = ? AND mes = ?",
+            (jogador_id, ano, mes),
+        ).fetchone()
+        if existente:
+            conn.execute(
+                "UPDATE mensalidades SET status = ?, data_pagamento = ?, observacao = ? WHERE id = ?",
+                (status, data_pagamento, observacao, existente["id"]),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO mensalidades (jogador_id, ano, mes, status, data_pagamento, observacao)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (jogador_id, ano, mes, status, data_pagamento, observacao),
+            )
+        conn.commit()
+        return redirect(url_for("mensalidades", ano=ano, mes=mes))
+
+    registro = conn.execute(
+        "SELECT status, data_pagamento, observacao FROM mensalidades WHERE jogador_id = ? AND ano = ? AND mes = ?",
+        (jogador_id, ano, mes),
+    ).fetchone()
+
+    return render_template(
+        "mensalidade_form_conteudo.html",
+        jogador=jogador_row,
+        registro=registro,
+        ano=ano,
+        mes=mes,
+        nome_mes=MESES_PT[mes],
+    )
 
 
 @app.errorhandler(404)

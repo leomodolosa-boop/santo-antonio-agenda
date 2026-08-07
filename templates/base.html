@@ -747,6 +747,11 @@
               <i class="bi bi-trophy"></i> Artilharia
             </a>
           {% endif %}
+          {% if perm_mensalidades %}
+            <a class="nav-link-custom {{ 'active' if request.endpoint == 'mensalidades' }}" href="{{ url_for('mensalidades') }}">
+              <i class="bi bi-cash-coin"></i> Mensalidades
+            </a>
+          {% endif %}
           {% if perm_usuarios %}
             <a class="nav-link-custom {{ 'active' if request.endpoint == 'usuarios' }}" href="{{ url_for('usuarios') }}">
               <i class="bi bi-people"></i> Usuários
@@ -816,6 +821,20 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalMensalidade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-cash-coin me-1"></i> Mensalidade</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body bg-body-tertiary" id="modalMensalidadeBody">
+          <div class="text-center py-5"><span class="spinner-border" style="color: var(--sao-verde);"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
@@ -874,6 +893,21 @@
         body.innerHTML = html;
       } catch (erro) {
         body.innerHTML = '<div class="alert alert-danger m-3">Não foi possível carregar o histórico.</div>';
+      }
+    }
+
+    async function agendaAbrirModalMensalidade(url) {
+      var modalEl = document.getElementById('modalMensalidade');
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      var body = document.getElementById('modalMensalidadeBody');
+      body.innerHTML = '<div class="text-center py-5"><span class="spinner-border" style="color: var(--sao-verde);"></span></div>';
+      modal.show();
+      try {
+        var resposta = await fetch(url);
+        var html = await resposta.text();
+        agendaInjetarHtmlComScripts(body, html);
+      } catch (erro) {
+        body.innerHTML = '<div class="alert alert-danger m-3">Não foi possível carregar o registro.</div>';
       }
     }
 
