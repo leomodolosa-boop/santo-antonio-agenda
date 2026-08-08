@@ -509,6 +509,11 @@ def proximo_sabado_sem_jogo():
     return candidato
 
 
+@app.route("/instalar")
+def instalar():
+    return render_template("instalar.html", app_version=APP_VERSION)
+
+
 @app.route("/")
 def index():
     hoje = date.today()

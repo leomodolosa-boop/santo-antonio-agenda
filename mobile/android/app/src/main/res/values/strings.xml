@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Agenda SAO</string>
+    <string name="title_activity_main">Agenda SAO</string>
+    <string name="package_name">com.santoantonio.agenda</string>
+    <string name="custom_url_scheme">com.santoantonio.agenda</string>
+</resources>

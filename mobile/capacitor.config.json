@@ -1,0 +1,9 @@
+{
+  "appId": "com.santoantonio.agenda",
+  "appName": "Agenda SAO",
+  "webDir": "www",
+  "server": {
+    "url": "https://santo-antonio-agenda.onrender.com",
+    "androidScheme": "https"
+  }
+}

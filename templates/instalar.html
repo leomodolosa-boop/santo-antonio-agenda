@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Instalar o app{% endblock %}
+
+{% block hero %}
+<div class="page-hero">
+  <div class="container">
+    <h1><i class="bi bi-phone me-1"></i> Instalar o app no celular</h1>
+    <div class="subtitle">Agenda Santo Antônio do Oriente — versão {{ app_version }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-body">
+    <p>
+      Baixe e instale o app pra abrir a Agenda direto da tela inicial do seu celular,
+      sem precisar abrir o navegador toda vez.
+    </p>
+
+    <a href="{{ url_for('static', filename='app/agenda-sao.apk') }}"
+       class="btn btn-lg btn-primary d-flex align-items-center justify-content-center gap-2 mb-4"
+       download>
+      <i class="bi bi-download"></i> Baixar o app (Android)
+    </a>
+
+    <h5 class="mb-3">Como instalar</h5>
+    <ol class="mb-4">
+      <li>Toque no botão acima pra baixar o arquivo <code>agenda-sao.apk</code>.</li>
+      <li>
+        Abra o arquivo baixado (geralmente aparece nas notificações ou na pasta
+        <strong>Downloads</strong>).
+      </li>
+      <li>
+        Se o Android avisar "instalação bloqueada" ou pedir permissão, toque em
+        <strong>Configurações</strong> e ative <strong>"Permitir desta fonte"</strong>
+        — é só pra esse arquivo, não muda nada no resto do celular.
+      </li>
+      <li>Toque em <strong>Instalar</strong> e depois em <strong>Abrir</strong>.</li>
+    </ol>
+
+    <div class="alert alert-info mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      O app sempre mostra a versão mais atual da Agenda automaticamente — não
+      precisa baixar de novo quando o site for atualizado.
+    </div>
+  </div>
+</div>
+
+{% endblock %}

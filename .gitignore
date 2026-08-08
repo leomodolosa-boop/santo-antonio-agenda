@@ -5,3 +5,14 @@ __pycache__/
 venv/
 static/escudos/*.png
 static/jogadores/*.png
+
+# Android/Capacitor build artifacts (o app é gerado localmente, só o APK final entra em static/app/)
+mobile/node_modules/
+mobile/*.keystore
+mobile/android/keystore.properties
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/capacitor-cordova-android-plugins/build/
+mobile/android/.idea/
